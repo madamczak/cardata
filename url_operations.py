@@ -38,6 +38,7 @@ class URLOperations(object):
                         else:
                             vals.append(cell.text.strip())
         return dict(zip(keys, vals))
+
     @staticmethod
     def parseAllegroSite2(url):
         d = {'stan:':'',
@@ -82,6 +83,33 @@ class URLOperations(object):
                     keys.append(small.text)
                     vals.append(span.text)
         return dict(zip(keys, vals))
+
+    @staticmethod
+    def parseOtoMotoSite2(url):
+        d = {}
+        r = urllib.urlopen(url).read()
+        soup = BeautifulSoup(r, "lxml")
+
+        for li in soup.findChildren('li', {'class': 'offer-params__item'}):
+            span = li.findChildren('span')
+            print span
+            if 'Rok produkcji' in span[0].text:
+                if li.findChildren('div')[0].text.strip() is not None:
+                    d['Rok produkcji'] = li.findChildren('div')[0].text.strip()
+            elif 'Przebieg' in span[0].text:
+                if li.findChildren('div')[0].text.strip() is not None:
+                    d['Przebieg'] = li.findChildren('div')[0].text.strip()
+            elif 'Rodzaj paliwa' in span[0].text:
+                if li.findChildren('div')[0].text.strip() is not None:
+                    d['Rodzaj paliwa'] = li.findChildren('div')[0].text.strip()
+            elif 'Typ' in span[0].text:
+                if li.findChildren('div')[0].text.strip() is not None:
+                    d['Typ'] = li.findChildren('div')[0].text.strip()
+            elif 'Kolor' in span[0].text:
+                if li.findChildren('div')[0].text.strip() is not None:
+                    d['Kolor'] = li.findChildren('div')[0].text.strip()
+        return d
+
 
     @staticmethod
     def getAllBrands(topUrl):
@@ -180,4 +208,3 @@ class URLOperations(object):
                 for ad in ads:
                     result.append(ad)
         return result
-
