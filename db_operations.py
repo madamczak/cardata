@@ -41,3 +41,27 @@ class DataBase(object):
     def executeReadCommand(self, command):
         self.c.execute(command)
         return self.c.fetchall()
+
+    def executeSqlCommand(self, command):
+        self.c.execute(command)
+        self.conn.commit()
+
+
+    def _getAllIds(self, colName, name):
+        command = """SELECT B_id FROM Brands WHERE %s = "%s" """ % (colName, name)
+        self.c.execute(command)
+        output = self.c.fetchall()
+
+        if output:
+            return [element[0] for element in output]
+        else:
+            raise Exception('There is no %s name called %s'  % (colName, name))
+
+    def getAllBrandIdsOfParticularBrand(self, brandName):
+        return self._getAllIds('brandName', brandName)
+
+    def getAllBrandIdsOfParticularModel(self, modelName):
+        return self._getAllIds('modelName', modelName)
+
+    def getVersionID(self, version):
+        return self._getAllIds('version', version)[0]

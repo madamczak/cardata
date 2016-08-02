@@ -2,8 +2,8 @@
 
 import urllib
 from bs4 import BeautifulSoup
+import time
 import unicodedata
-
 
 
 def is_ascii(s):
@@ -23,7 +23,13 @@ class URLOperations(object):
     def parseAllegroSite(url):
         keys = []
         vals = []
-        r = urllib.urlopen(url).read()
+        try:
+            r = urllib.urlopen(url).read()
+        except:
+            time.sleep(60)
+            print 'sleep 60'
+            return {}
+
         soup = BeautifulSoup(r, "lxml")
         tables = soup.findChildren('table')
         for t in tables[2:]:
@@ -34,9 +40,9 @@ class URLOperations(object):
                     #for cell in cells:
                     for cell in cells:
                         if ":" in cell.text:
-                            keys.append(cell.text.strip())
+                            keys.append(unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii','ignore').lower())
                         else:
-                            vals.append(cell.text.strip())
+                            vals.append(unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii','ignore').lower())
         return dict(zip(keys, vals))
 
     @staticmethod
@@ -51,7 +57,14 @@ class URLOperations(object):
              'skrzynia biegow:':'',
              'kolor:':''
              }
-        r = urllib.urlopen(url).read()
+
+        try:
+            r = urllib.urlopen(url).read()
+        except:
+            print 'sleep 60'
+            time.sleep(60)
+            return {}
+
         soup = BeautifulSoup(r, "lxml")
         lis = soup.findChildren('li')
         for li in lis:
@@ -74,40 +87,50 @@ class URLOperations(object):
     def parseOtoMotoSite(url):
         keys = []
         vals = []
-        r = urllib.urlopen(url).read()
+        try:
+            r = urllib.urlopen(url).read()
+        except:
+            print 'sleep 60'
+            time.sleep(60)
+            return {}
         soup = BeautifulSoup(r, "lxml")
         tabele = soup.findChildren('ul')[6:10]
         for tabela in tabele:
             for li in tabela.findChildren('li'):
                 for small, span in zip(li.findChildren('small'), li.findChildren('span')):
-                    keys.append(small.text)
-                    vals.append(span.text)
+                    keys.append(unicodedata.normalize('NFKD', small.text).encode('ascii','ignore').lower())
+                    vals.append(unicodedata.normalize('NFKD', span.text).encode('ascii','ignore').lower())
         return dict(zip(keys, vals))
+
 
     @staticmethod
     def parseOtoMotoSite2(url):
         d = {}
-        r = urllib.urlopen(url).read()
+        try:
+            r = urllib.urlopen(url).read()
+        except:
+            print 'sleep 60'
+            time.sleep(60)
+            return {}
         soup = BeautifulSoup(r, "lxml")
 
         for li in soup.findChildren('li', {'class': 'offer-params__item'}):
             span = li.findChildren('span')
-            print span
-            if 'Rok produkcji' in span[0].text:
+            if 'rok produkcji' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['Rok produkcji'] = li.findChildren('div')[0].text.strip()
-            elif 'Przebieg' in span[0].text:
+                    d['rok produkcji'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+            elif 'przebieg' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['Przebieg'] = li.findChildren('div')[0].text.strip()
-            elif 'Rodzaj paliwa' in span[0].text:
+                    d['przebieg'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+            elif 'rodzaj paliwa' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['Rodzaj paliwa'] = li.findChildren('div')[0].text.strip()
-            elif 'Typ' in span[0].text:
+                    d['rodzaj paliwa'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+            elif 'typ' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['Typ'] = li.findChildren('div')[0].text.strip()
-            elif 'Kolor' in span[0].text:
+                    d['typ'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+            elif 'kolor' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['Kolor'] = li.findChildren('div')[0].text.strip()
+                    d['kolor'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
         return d
 
 
@@ -116,14 +139,18 @@ class URLOperations(object):
         dictionary = {}
         crawled = []
         toCrawl = []
-        r = urllib.urlopen(topUrl).read()
+        try:
+            r = urllib.urlopen(topUrl).read()
+        except:
+            print 'sleep 60'
+            time.sleep(60)
+            return {}
         soup = BeautifulSoup(r, "lxml")
 
         top = soup.find_all("li", { 'class' : 'sidebar-cat' })
         for t in top:
             if len(t.findChildren('a')) > 0:
                 dictionary[t.findChildren("span")[0].text.strip()] = 'http://allegro.pl/' + t.findChildren('a')[0]['href']
-                #links.append('http://allegro.pl/' + t.findChildren('a')[0]['href'])
         return dictionary
 
     @staticmethod
@@ -136,10 +163,18 @@ class URLOperations(object):
     def getLinksFromCategorySite(url):
 
         #last
-        r = urllib.urlopen(url).read()
-        soup = BeautifulSoup(r, "lxml")
+        try:
+            r = urllib.urlopen(url).read()
+        except:
+            print 'sleep 60'
+            time.sleep(60)
+            return{}
 
-        top = soup.find_all("ul", { 'class' : 'pagination top' })[0]
+        soup = BeautifulSoup(r, "lxml")
+        try:
+            top = soup.find_all("ul", { 'class' : 'pagination top' })[0]
+        except:
+            return []
         last = int(top.findChildren("li")[2].findChildren('a')[0].text)
 
         links = []
@@ -152,6 +187,7 @@ class URLOperations(object):
                 r = urllib.urlopen(address).read()
             except:
                 continue
+
             soup = BeautifulSoup(r, "lxml")
 
             for link in soup.find_all('a', href=True):
@@ -167,7 +203,12 @@ class URLOperations(object):
     @staticmethod
     def getSubcategories(url):
         links = []
-        r = urllib.urlopen(url).read()
+        try:
+            r = urllib.urlopen(url).read()
+        except:
+            print 'sleep 60'
+            time.sleep(60)
+            return{}
         soup = BeautifulSoup(r, "lxml")
 
         top = soup.find_all("li", { 'class' : 'sidebar-cat' })
@@ -208,3 +249,5 @@ class URLOperations(object):
                 for ad in ads:
                     result.append(ad)
         return result
+
+

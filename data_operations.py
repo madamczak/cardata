@@ -1,4 +1,5 @@
 import re
+import numpy as np
 
 class DataValidation(object):
     @staticmethod
@@ -65,21 +66,21 @@ class DataValidation(object):
 
     @staticmethod
     def validateOtomotoCarDict(cDict):
+        #
+        # if cDict.get('Pojemnosc skokowa', None) is None\
+        #         or not DataValidation.validateVolume(cDict.get('Pojemnosc skokowa', 0)):
+        #     return False, ""#"Volume is not valid: %d" % cDict.get(u'Pojemno\u015b\u0107 skokowa', 0)
 
-        if cDict.get(u'Pojemno\u015b\u0107 skokowa', None) is None\
-                or not DataValidation.validateVolume(cDict.get(u'Pojemno\u015b\u0107 skokowa', 0)):
-            return False, ""#"Volume is not valid: %d" % cDict.get(u'Pojemno\u015b\u0107 skokowa', 0)
-
-        if cDict.get(u'Przebieg', None) is None\
-                or not DataValidation.validateMilegae(cDict.get(u'Przebieg', 0)):
+        if cDict.get('Przebieg', None) is None\
+                or not DataValidation.validateMilegae(cDict.get('Przebieg', 0)):
             return False, ""#"Mileage is not valid: %d" % cDict.get(u'Przebieg', 0)
 
-        if cDict.get(u'Moc', None) is None\
-                or not DataValidation.validatePower(cDict.get(u'Moc', 0)):
+        if cDict.get('Moc', None) is None\
+                or not DataValidation.validatePower(cDict.get('Moc', 0)):
             return False,""# "Power is not valid: %d" % cDict.get(u'Moc', 0)
 
-        if cDict.get(u'Rok produkcji', None) is None\
-                or not DataValidation.validateYear(cDict.get(u'Rok produkcji', 0)):
+        if cDict.get('Rok produkcji', None) is None\
+                or not DataValidation.validateYear(cDict.get('Rok produkcji', 0)):
             return False, ""#"Year is not valid: %d" % cDict.get(u'Rok produkcji', None)
 
         return True, 'OK'
@@ -105,3 +106,8 @@ class DataValidation(object):
             return False, ""%"Year is not valid: %d" % cDict.get(u'Rok produkcji:', None)
 
         return True, 'OK'
+
+class NumpyArrayOperations(object):
+    @staticmethod
+    def createYearMileageArray(yearList, mileageList):
+        return np.array([yearList, mileageList])
