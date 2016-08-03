@@ -1,5 +1,6 @@
 import re
 import numpy as np
+import pandas
 
 class DataValidation(object):
     @staticmethod
@@ -107,7 +108,25 @@ class DataValidation(object):
 
         return True, 'OK'
 
-class NumpyArrayOperations(object):
+class PandasOperations(object):
     @staticmethod
-    def createYearMileageArray(yearList, mileageList):
-        return np.array([yearList, mileageList])
+    def createWholeCarDataFrame(db):
+        data = db.readAllData('CarData')
+        df = pandas.DataFrame.from_records(data, columns = ['B_id', 'L_id', 'year', \
+                                                            'mileage', 'power', 'capacity',
+                                                            'fuel', 'color', 'usedornew',
+                                                            'doors', 'gearbox'])
+        return df
+
+    @staticmethod
+    def filterBrandOrModelFromDataFrame(dataFrame, listOfBrandOrModelIds):
+        return dataFrame.loc[dataFrame['B_id'].isin(listOfBrandOrModelIds)]
+
+    @staticmethod
+    def filterVersionFromDataFrame(dataFrame, versionId):
+        return dataFrame.loc[dataFrame['B_id'] == versionId]
+
+
+
+
+
