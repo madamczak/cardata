@@ -1,12 +1,12 @@
 import sqlite3
-from cars import setUpLogger
+from logger import setUpLogger
 
 class DataBase(object):
     def __init__(self, databaseName):
         self.logger = setUpLogger("DataBase")
         self.conn = sqlite3.connect(databaseName)
         self.c = self.conn.cursor()
-        self.logger.info("Connection to db: '%d' is set up." % databaseName)
+        self.logger.info("Connection to db: '%s' is set up." % databaseName)
 
     def __del__(self):
         self.c.close()

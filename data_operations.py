@@ -1,5 +1,5 @@
 import re
-from cars import setUpLogger
+from logger import setUpLogger
 
 
 class DataCleaning(object):

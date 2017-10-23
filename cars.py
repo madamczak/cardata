@@ -1,12 +1,13 @@
 import re
 import unicodedata
 
-import logging
+from logger import setUpLogger
 from url_operations import URLOperations
 from db_operations import DataBase
 import time
 from collections import OrderedDict
 import datetime
+
 
 def ConstructBrandsTable(db):
     logger = setUpLogger("constructLinkTable")
@@ -241,49 +242,28 @@ def constructDBTables(db):
     db.createTable('CarData', carDataDict)
     db.createTable('InvalidLinks', InvalidLinksDict)
 
-def setUpLogger(loggerName):
-    logger = logging.getLogger(loggerName)
-    logger.setLevel(logging.DEBUG)
-    # logging.basicConfig(filename='myapp.log', format='%(levelname)s:%(message)s', level=logging.DEBUG)
-    formatter = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
-    fh = logging.FileHandler('spam.log')
-    fh.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-
-    fh.setFormatter(formatter)
-    ch.setFormatter(formatter)
-
-    logger.addHandler(fh)
-    logger.addHandler(ch)
-
-    return logger
-
 def collect():
     logger = setUpLogger("collect")
     logger.info('Started: %s' % datetime.datetime.now().strftime("%d-%m-%Y %H:%M"))
 
-    db = DataBase("cars_work_new2.db")
+    db = DataBase("cars_work4.db")
     constructDBTables(db)
 
     while True:
         beginBrands = time.time()
         currentDate = datetime.datetime.now()
-        newBrands = 0
-        #newBrands = ConstructBrandsTable(db)
+        newBrands = ConstructBrandsTable(db)
         logger.info("Brands done. %s. Number of new brands: %d. Done in %d seconds." % (
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newBrands, time.time() - beginBrands))
 
         beginLinks = time.time()
-        #newLinks = constructLinkTable(db)
-        newLinks = 0
+        newLinks = constructLinkTable(db)
         logger.info("Links done.  %s. Number of new links:  %d. Done in %d seconds." % (
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newLinks, time.time() - beginLinks))
         now = time.time()
 
         beginCars = time.time()
         newCars = ConstructCarsTable(db)
-        newCars = 0
         logger.info("Cars done.   %s. Number of new cars:   %d. Done in %d seconds." % (
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newCars, time.time() - beginCars))
 

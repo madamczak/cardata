@@ -6,8 +6,7 @@ from bs4 import BeautifulSoup
 import time
 import unicodedata
 from data_operations import DataCleaning
-from cars import setUpLogger
-import logging
+from logger import setUpLogger
 
 
 def is_ascii(s):
@@ -17,9 +16,9 @@ def _openLinkAndReturnSoup(url):
     logger = setUpLogger("_openLinkAndReturnSoup")
     try:
         r = urllib.urlopen(url).read()
-    except:
+    except Exception as e:
         time.sleep(60)
-        logger.info("Problems with parsing %s, sleep 60 seconds." % url)
+        logger.info("Problems with parsing %s, sleep 60 seconds. Exception: %s" % (url, e.message))
         return None
 
     return BeautifulSoup(r, "lxml")
@@ -250,6 +249,9 @@ class URLOperations(object):
 
         soup = _openLinkAndReturnSoup(topUrl)
 
+        if soup is None:
+            return {}
+
         top = soup.find_all("section", { 'class' : 'category-tree__category-tree__3Mj66' })
 
         if len(top) == 1:
@@ -262,7 +264,6 @@ class URLOperations(object):
             return {}
 
         if len(dictionary.values()) > 50 and topUrl != "https://allegro.pl/kategoria/samochody-osobowe-4029":
-            logger.debug("Problems getting brands. Url: %s not parsed correctly." % topUrl)
             return {}
         else:
             return dictionary
