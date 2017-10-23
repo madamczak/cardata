@@ -1,253 +1,321 @@
 #-*- coding: utf-8 -*-
+import re
 
 import urllib
 from bs4 import BeautifulSoup
 import time
 import unicodedata
+from data_operations import DataCleaning
+from cars import setUpLogger
+import logging
 
 
 def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
+def _openLinkAndReturnSoup(url):
+    logger = setUpLogger("_openLinkAndReturnSoup")
+    try:
+        r = urllib.urlopen(url).read()
+    except:
+        time.sleep(60)
+        logger.info("Problems with parsing %s, sleep 60 seconds." % url)
+        return None
+
+    return BeautifulSoup(r, "lxml")
 
 
 class URLOperations(object):
     forbiddenLinks = [
-                    'http://allegro.pl/',
-                    'http://allegro.pl/category_map.php',
-                    'http://allegro.pl/logout.php',
-                    'http://allegro.pl/strefamarek?ref=navbar',
-                    'http://otomoto.pl'
+                    'https://allegro.pl/',
+                    'https://allegro.pl/praca',
+                    'https://allegro.pl/mapa-strony',
+                    'https://allegro.pl/',
+                    'https://allegro.pl/strefaokazji',
+                    'https://allegro.pl/strefamarek?ref=navbar',
+                    'https://allegro.pl/artykuly?ref=navbar',
+                    'https://allegro.pl/category_map.php',
+                    'https://allegro.pl/logout.php',
+                    'https://allegro.pl/strefamarek?ref=navbar',
+                    'https://otomoto.pl',
+                    "https://allegro.pl/sklep?ref=navbar",
+                    "https://allegro.pl/myaccount",
+                    "https://allegro.pl/logout.php?ref=navbar"
                      ]
+
+    @staticmethod
+    def getAllegroPrice(url):
+        logger = setUpLogger("getAllegroPrice")
+        soup = _openLinkAndReturnSoup(url)
+
+        try:
+            price = int(float(soup.findAll("div", { "class" : "price" })[0]['data-price']))
+
+            return price
+        except:
+            logger.error("Problems getting price from url: %s." % url)
+            return 0
+
+    @staticmethod
+    def getOtomotoPrice(url):
+        logger = setUpLogger("getOtomotoPrice")
+        soup = _openLinkAndReturnSoup(url)
+
+        try:
+            price = int(soup.findAll("span", { "class" : "offer-price__number" })[0].text.split('  ')[0].replace(' ', ''))
+            # possible place for a debug log line
+            return price
+        except:
+            logger.error("Problems getting price from url: %s." % url)
+            return 0
+
     @staticmethod
     def parseAllegroSite(url):
+        logger = setUpLogger("parseAllegroSite")
         keys = []
         vals = []
+
+        soup = _openLinkAndReturnSoup(url)
         try:
-            r = urllib.urlopen(url).read()
+            tables = soup.findChildren('table')
         except:
-            time.sleep(60)
-            print 'sleep 60'
+            logger.error("Unable to parse site: %s. Just at the beginning there was no 'table' tag in the url." % url)
             return {}
 
-        soup = BeautifulSoup(r, "lxml")
-        tables = soup.findChildren('table')
-        for t in tables[2:]:
-            rows = t.findChildren(['th', 'tr'])
-            for row in rows:
-                cells = row.findChildren('td')
-                if len(cells) == 4 and '<' not in row.text and row.text.strip() != "":
-                    #for cell in cells:
-                    for cell in cells:
-                        if ":" in cell.text:
-                            keys.append(unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii','ignore').lower())
-                        else:
-                            vals.append(unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii','ignore').lower())
-        return dict(zip(keys, vals))
+        if len(tables) != 0:
+            logger.debug("Allegro type 1 site.")
+            #type 1 allegro site
+            for t in tables[2:]:
+                rows = [row for row in t.findChildren(['th', 'tr']) if '<' not in row.text and row.text.strip()]
 
-    @staticmethod
-    def parseAllegroSite2(url):
-        d = {'stan:':'',
-             'rok produkcji:':'',
-             'przebieg [km]:':'',
-             'pojemnosc silnika [cm3]:': '',
-             'moc [KM]:': '',
-             'rodzaj paliwa:':'',
-             'liczba drzwi:':'',
-             'skrzynia biegow:':'',
-             'kolor:':''
-             }
+                validCells = []
+                for row in rows:
+                    cells = row.findChildren('td')
+                    validCells.extend([cell for cell in cells if len(cells) == 4])
 
-        try:
-            r = urllib.urlopen(url).read()
-        except:
-            print 'sleep 60'
-            time.sleep(60)
+                for cell in validCells:
+                    if ":" in cell.text:
+                        keys.append(unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii','ignore').lower())
+                    else:
+                        value = unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii','ignore').lower()
+
+                        if value.isdigit():
+                            value = int(value)
+
+                        vals.append(value)
+        else:
+            logger.debug("Allegro type 2 site.")
+            #type 2 allegro site
+            lis = [li.findChildren('span') for li in soup.findChildren('li') if len(li.findChildren('span')) == 2]
+            keys, vals = [unicodedata.normalize('NFKD', span[0].text.strip()).encode('ascii','ignore').lower() for span in lis], \
+                           [unicodedata.normalize('NFKD', span[1].text.strip()).encode('ascii','ignore').lower() for span in lis]
+        if keys and vals:
+            keys.append('cena')
+            try:
+                vals.append(URLOperations.getAllegroPrice(url))
+            except:
+                vals.append(0)
+
+        toRet = dict(zip(keys, vals))
+
+        if all([val == "0" or val == "" for val in toRet.values()]):
+            logger.debug("Something went wrong. Empty dictionary is returned. Check out the link: %s." % url)
             return {}
-
-        soup = BeautifulSoup(r, "lxml")
-        lis = soup.findChildren('li')
-        for li in lis:
-            spans = li.findChildren('span')
-            if len(spans) == 2:
-                if is_ascii(spans[0].text):
-                    if spans[0].text in d.keys():
-                        if 'wany' in spans[1].text:
-                            d['stan:'] = 'uzywany'
-                        else:
-                            d[spans[0].text] = spans[1].text
-                else:
-                    if 'pojemno' in spans[0].text:
-                        d['pojemnosc silnika [cm3]:'] = spans[1].text
-                    elif 'skrzynia bieg' in spans[0].text:
-                        d['skrzynia biegow:'] = spans[1].text
-        return d
+        else:
+            return toRet
 
     @staticmethod
     def parseOtoMotoSite(url):
+        logger = setUpLogger("parseOtoMotoSite")
         keys = []
         vals = []
+
+        soup = _openLinkAndReturnSoup(url)
         try:
-            r = urllib.urlopen(url).read()
+            tabele = soup.findChildren('ul')[6:10]
         except:
-            print 'sleep 60'
-            time.sleep(60)
+            logger.debug("Unable to parse site: %s. Just at the beginning there was no 'ul' tag in the url." % url)
             return {}
-        soup = BeautifulSoup(r, "lxml")
-        tabele = soup.findChildren('ul')[6:10]
+
         for tabela in tabele:
             for li in tabela.findChildren('li'):
                 for small, span in zip(li.findChildren('small'), li.findChildren('span')):
                     keys.append(unicodedata.normalize('NFKD', small.text).encode('ascii','ignore').lower())
-                    vals.append(unicodedata.normalize('NFKD', span.text).encode('ascii','ignore').lower())
-        return dict(zip(keys, vals))
+
+                    value = unicodedata.normalize('NFKD', span.text).encode('ascii','ignore').lower()
+
+                    if value.isdigit():
+                        value = int(value)
+
+                    vals.append(value)
+
+        if keys and vals:
+            keys.append('cena')
+            vals.append(URLOperations.getOtomotoPrice(url))
+
+        toRet = dict(zip(keys, vals))
+        if all([val == "0" or val == "" for val in toRet.values()]):
+            logger.debug("Unable to parse site: %s. Just at the beginning there was no 'ul' tag in the url." % url)
+            return {}
+
+        else:
+            return toRet
 
 
     @staticmethod
     def parseOtoMotoSite2(url):
+        logger = setUpLogger("parseOtoMotoSite2")
         d = {}
-        try:
-            r = urllib.urlopen(url).read()
-        except:
-            print 'sleep 60'
-            time.sleep(60)
-            return {}
-        soup = BeautifulSoup(r, "lxml")
 
-        for li in soup.findChildren('li', {'class': 'offer-params__item'}):
+        soup = _openLinkAndReturnSoup(url)
+        try:
+            lis = soup.findChildren('li', {'class': 'offer-params__item'})
+        except:
+            logger.debug("Unable to parse site: %s. Just at the beginning there was no 'li' tags in the url." % url)
+            return d
+
+        for li in lis:
             span = li.findChildren('span')
             if 'rok produkcji' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['rok produkcji'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+
+                    try:
+                        d['rok produkcji'] = int(unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower())
+                    except:
+                        logger.debug("Problems parsing url %s. There is something wrong with year of production." % url)
+                        d['rok produkcji'] = 0
+
             elif 'przebieg' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['przebieg'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+                    try:
+                        decVal = DataCleaning.stripDecimalValue(\
+                            (unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()))
+                        d['przebieg'] = int(decVal)
+                    except:
+                        logger.debug("Problems parsing url %s. There is something wrong with mileage." % url)
+                        d['przebieg'] = 0
+
             elif 'rodzaj paliwa' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
                     d['rodzaj paliwa'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
-            elif 'typ' in span[0].text.lower():
-                if li.findChildren('div')[0].text.strip() is not None:
-                    d['typ'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+
             elif 'kolor' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
                     d['kolor'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+
+            elif 'liczba drzwi' in span[0].text.lower():
+                if li.findChildren('div')[0].text.strip() is not None:
+                    d['liczba drzwi'] = DataCleaning.stripDecimalValue(unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower())
+
+            elif 'moc' in span[0].text.lower():
+                if li.findChildren('div')[0].text.strip() is not None:
+                    try:
+                        decVal = DataCleaning.stripDecimalValue(\
+                            (unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()))
+                        d['moc'] = int(decVal)
+                    except:
+                        logger.debug("Problems parsing url %s. There is something wrong with power." % url)
+                        d['moc'] = 0
+
+            elif 'stan' in span[0].text.lower():
+                if li.findChildren('div')[0].text.strip() is not None:
+                    d['stan'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+
+            elif re.match("pojemno.. skokowa", span[0].text.lower()):
+                if li.findChildren('div')[0].text.strip() is not None:
+                    try:
+                        decVal = DataCleaning.stripDecimalValue( \
+                            (unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii',
+                                                                                                          'ignore').lower()))
+                        d['pojemnosc skokowa'] = int(decVal)
+                    except:
+                        logger.debug("Problems parsing url %s. There is something wrong with capacity." % url)
+                        d['pojemnosc skokowa'] = 0
+
+            elif re.match("skrzynia bieg.w", span[0].text.lower()):
+                if li.findChildren('div')[0].text.strip() is not None:
+                    d['skrzynia biegow'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+
+        if d:
+            price = URLOperations.getOtomotoPrice(url)
+            d['cena'] = price
+
         return d
 
 
     @staticmethod
     def getAllBrands(topUrl):
+        logger = setUpLogger("getAllBrands")
         dictionary = {}
-        crawled = []
-        toCrawl = []
-        try:
-            r = urllib.urlopen(topUrl).read()
-        except:
-            print 'sleep 60'
-            time.sleep(60)
+
+        soup = _openLinkAndReturnSoup(topUrl)
+
+        top = soup.find_all("section", { 'class' : 'category-tree__category-tree__3Mj66' })
+
+        if len(top) == 1:
+            liElements = top[0].findChildren("li")
+            for li in liElements:
+                if len(li.findChildren("span")) != 0 and len(li.findChildren('a')) != 0:
+                    dictionary[li.findChildren("span")[0].text.strip()] = li.findChildren('a')[0]['href']
+        else:
+            logger.debug("Problems getting brands. There is no top parameter - 'section' tag.")
             return {}
-        soup = BeautifulSoup(r, "lxml")
 
-        top = soup.find_all("li", { 'class' : 'sidebar-cat' })
-        for t in top:
-            if len(t.findChildren('a')) > 0:
-                dictionary[t.findChildren("span")[0].text.strip()] = 'http://allegro.pl/' + t.findChildren('a')[0]['href']
-        return dictionary
-
-    @staticmethod
-    def getAllModels(urlDict):
-        #urlDict from getAllBrands method
-
-        pass
+        if len(dictionary.values()) > 50 and topUrl != "https://allegro.pl/kategoria/samochody-osobowe-4029":
+            logger.debug("Problems getting brands. Url: %s not parsed correctly." % topUrl)
+            return {}
+        else:
+            return dictionary
 
     @staticmethod
     def getLinksFromCategorySite(url):
+        logger = setUpLogger("getLinksFromCategorySite")
 
-        #last
         try:
-            r = urllib.urlopen(url).read()
+            lastLinkSiteNumber = int(_openLinkAndReturnSoup(url).find_all("li", {"class" : "quantity"})[0].text)
+            logger.debug("There are currently %d categories in DB." % lastLinkSiteNumber)
         except:
-            print 'sleep 60'
-            time.sleep(60)
-            return{}
+            lastLinkSiteNumber = 1
+            logger.debug("There are no categories in DB.")
 
-        soup = BeautifulSoup(r, "lxml")
-        try:
-            top = soup.find_all("ul", { 'class' : 'pagination top' })[0]
-        except:
-            return []
-        last = int(top.findChildren("li")[2].findChildren('a')[0].text)
+        pattern = re.compile("(http|https)://(www.)?otomoto.pl")
 
         links = []
-        for i in range(1, last+1):
+        for i in range(1, lastLinkSiteNumber + 1):
             if i > 1:
                 address = url + "?p=" + str(i)
             else:
                 address = url
+
             try:
                 r = urllib.urlopen(address).read()
             except:
+                logger.error("Unable to open %s. Skipping." % address)
                 continue
 
             soup = BeautifulSoup(r, "lxml")
 
             for link in soup.find_all('a', href=True):
-                if ('http://allegro.pl/' in link['href']\
+                if (('https://allegro.pl/' in link['href'] or 'http://allegro.pl/' in link['href'])\
                     and '/' not in link['href'][19:] \
-                    and link['href'] not in URLOperations.forbiddenLinks) \
-                        or 'http://otomoto.pl' in link['href']:
+                    and link['href'].strip() not in URLOperations.forbiddenLinks and "ref=navbar" not in link['href'].strip()) \
+                        or pattern.match(link['href']):
 
                     if link['href'] not in links:
                         links.append(link['href'])
+        logger.debug("There are %d new links in %s category site url." % (len(links), url))
         return links
 
     @staticmethod
     def getSubcategories(url):
+        logger = setUpLogger("getSubcategories")
         links = []
-        try:
-            r = urllib.urlopen(url).read()
-        except:
-            print 'sleep 60'
-            time.sleep(60)
-            return{}
-        soup = BeautifulSoup(r, "lxml")
+        soup = _openLinkAndReturnSoup(url)
 
         top = soup.find_all("li", { 'class' : 'sidebar-cat' })
         for t in top:
             if len(t.findChildren('a')) > 0:
                 links.append('http://allegro.pl/' + t.findChildren('a')[0]['href'])
+
+        logger.debug("There are %d new subcategories in %s category site url." % (len(links), url))
         return links
-
-    @staticmethod
-    def getAllLinksToCategories(baseUrl):
-        subcategories = []
-        brands = URLOperations.getSubcategories(baseUrl)
-        for brand in brands:
-            toAdd = URLOperations.getSubcategories(brand)
-            for newLink in toAdd:
-                if newLink not in subcategories:
-                    subcategories.append(newLink)
-
-        return subcategories
-
-    @staticmethod
-    def getAllAdvertismentLinks(listOfCategoriesLinks):
-        adverisments = []
-        for cat in listOfCategoriesLinks[:2]:
-            toAdd = URLOperations.getLinksFromCategorySite(cat)
-            for newLink in toAdd:
-                if newLink not in adverisments:
-                    adverisments.append(newLink)
-
-        return adverisments
-
-    @staticmethod
-    def GetAllAdvertisments(listOfCategories):
-        result = []
-        for category in listOfCategories:
-            if 'osobowe' not in category:
-                ads = URLOperations.getLinksFromCategorySite(category)
-                for ad in ads:
-                    result.append(ad)
-        return result
-
-
