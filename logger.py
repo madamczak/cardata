@@ -1,20 +1,23 @@
 import logging
 
 
-def setUpLogger(loggerName):
-    logger = logging.getLogger(loggerName)
-    logger.setLevel(logging.DEBUG)
-    # logging.basicConfig(filename='myapp.log', format='%(levelname)s:%(message)s', level=logging.DEBUG)
-    formatter = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
-    fh = logging.FileHandler('cardata.log')
-    fh.setLevel(logging.DEBUG)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+class Logger(object):
+    @staticmethod
+    def setLogger(name):
+        logger = logging.getLogger(name)
+        logger.setLevel(logging.DEBUG)
 
-    fh.setFormatter(formatter)
-    ch.setFormatter(formatter)
+        formatter = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
+        fh = logging.FileHandler('cardata.log')
+        fh.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
 
-    logger.addHandler(fh)
-    logger.addHandler(ch)
+        fh.setFormatter(formatter)
+        ch.setFormatter(formatter)
 
-    return logger
+        logger.addHandler(fh)
+        logger.addHandler(ch)
+        return logger
+
+

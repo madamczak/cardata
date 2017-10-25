@@ -1,5 +1,8 @@
 import re
-from logger import setUpLogger
+from logger import Logger
+import inspect
+
+moduleLogger = Logger.setLogger("dataOps")
 
 
 class DataCleaning(object):
@@ -14,11 +17,11 @@ class DataCleaning(object):
 
     @staticmethod
     def convertToNumeric(strippedValue):
-        logger = setUpLogger("stripDecimalValue")
+        methodName = inspect.stack()[0][3]
         if strippedValue.isdigit():
             return int(strippedValue)
         else:
-            logger.error("Unable to strip value %s" % strippedValue)
+            moduleLogger.error("%s - Unable to strip value %s" % (methodName, strippedValue))
             return -9999
 
 
@@ -29,7 +32,7 @@ class DataOperations(object):
 
     @staticmethod
     def createCsvFileFromDataSet(carData, fileName):
-        logger = setUpLogger("createCsvFileFromDataSet")
+        methodName = inspect.stack()[0][3]
         dataSetString = ""
         for row in carData:
             rowString = ','.join([str(element) for element in row[2:]])
@@ -37,5 +40,5 @@ class DataOperations(object):
             dataSetString += rowString
 
         with open(fileName, "w") as f:
-            logger.info("Creating %s file with %d number of rows" % (fileName, len(carData)))
+            moduleLogger.info("s - Creating %s file with %d number of rows" % (methodName, fileName, len(carData)))
             f.write(dataSetString)

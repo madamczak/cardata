@@ -1,74 +1,89 @@
 import sqlite3
-from logger import setUpLogger
+from logger import Logger
+import inspect
+
+
+moduleLogger = Logger.setLogger("dbops")
 
 class DataBase(object):
     def __init__(self, databaseName):
-        self.logger = setUpLogger("DataBase")
         self.conn = sqlite3.connect(databaseName)
         self.c = self.conn.cursor()
-        self.logger.info("Connection to db: '%s' is set up." % databaseName)
+        moduleLogger.info("Connection to db: '%s' is set up." % databaseName)
 
     def __del__(self):
         self.c.close()
         self.conn.close()
-        self.logger.info("Connection to db is closed.")
+        moduleLogger.info("Connection to db is closed.")
 
     def createTable(self, name, columnDict):
+        methodName = inspect.stack()[0][3]
+
         command = "CREATE TABLE IF NOT EXISTS %s(" % name
         for item in columnDict.items():
             command += " %s %s," % item
         command = command[:-1] + ")"
 
-        self.logger.debug("Command: %s will be executed." % command)
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        self.logger.info("Command: %s executed successfully." % command)
+        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
 
     def insertStringData(self, tableName, stringData):
+        methodName = inspect.stack()[0][3]
+
         command = "INSERT INTO %s VALUES(%s)" % (tableName, stringData)
-        self.logger.debug("Command: %s will be executed." % command)
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         self.conn.commit()
-        self.logger.info("Command: %s executed successfully." % command)
+        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
 
     def readAllData(self, tableName):
+        methodName = inspect.stack()[0][3]
+
         command = "SELECT * FROM %s" % tableName
-        self.logger.debug("Command: %s will be executed." % command)
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        self.logger.info("Command: %s executed successfully." % command)
+        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
         items = self.c.fetchall()
-        self.logger.info("Number of items returned: %d." % len(items))
+        moduleLogger.info("%s - Number of items returned: %d." % (methodName, len(items)))
         return items
 
     def executeSqlCommand(self, command):
-        self.logger.debug("Command: %s will be executed." % command)
+        methodName = inspect.stack()[0][3]
+
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         self.conn.commit()
-        self.logger.info("Command: %s executed successfully." % command)
+        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
 
 
     def _getAllIds(self, colName, name):
+        methodName = inspect.stack()[0][3]
+
         command = """SELECT B_Id FROM Brands WHERE %s = "%s" """ % (colName, name)
-        self.logger.debug("Command: %s will be executed." % command)
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        self.logger.info("Command: %s executed successfully." % command)
+        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
         output = self.c.fetchall()
 
         if output:
             items = [element[0] for element in output]
-            self.logger.debug("Number of items returned: %d." % len(items))
+            moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(items)))
             return items
         else:
-            raise Exception('There is no %s name called %s'  % (colName, name))
+            raise Exception('There is no %s called %s'  % (colName, name))
 
     def _getCarsById(self,  brandId):
-        command = """SELECT * FROM CarData WHERE B_Id = "%s" """ %  brandId
-        self.logger.debug("Command: %s will be executed." % command)
+        methodName = inspect.stack()[0][3]
+
+        command = """SELECT * FROM CarData WHERE B_Id = "%s" """ % brandId
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        self.logger.info("Command: %s executed successfully." % command)
+        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
         output = self.c.fetchall()
 
         if output:
-            self.logger.debug("Number of items returned: %d." % len(output))
+            moduleLogger.debug("%s - Number of items returned: %d." % len(output))
             return output
         else:
             raise Exception('There are no cars with B_Id %s'  % brandId)
@@ -80,51 +95,64 @@ class DataBase(object):
         return self._getAllIds('modelName', modelName)
 
     def getVersionID(self, modelName, version):
+        methodName = inspect.stack()[0][3]
+
         command = """SELECT B_Id FROM Brands WHERE "modelName" = "%s" and "version" = "%s" """ % (modelName, version)
-        self.logger.debug("Command: %s will be executed." % command)
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        self.logger.info("Command: %s executed successfully." % command)
+        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
         output = self.c.fetchall()
 
         if output:
             items = [element[0] for element in output]
-            self.logger.debug("Number of items returned: %d." % len(items))
+            moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(items)))
             return items
         else:
             raise Exception('There is no version "%s" of model called "%s"'  % (version, modelName))
 
     def getAllCars(self):
+        methodName = inspect.stack()[0][3]
+
         command = """SELECT * FROM CarData """
-        self.logger.debug("Command: %s will be executed." % command)
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        self.logger.info("Command: %s executed successfully." % command)
+        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
         output = self.c.fetchall()
 
         if output:
-            self.logger.debug("Number of items returned: %d." % len(output))
+            moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(output)))
             return output
 
         else:
             raise Exception('Problems with getting all car data')
 
     def getAllCarsOfModel(self, modelName):
+        methodName = inspect.stack()[0][3]
+
         cars = []
         modelIds = self.getAllBrandIdsOfModel(modelName)
         for brandId in modelIds:
             cars.extend(self._getCarsById(brandId))
 
-        self.logger.debug("Number of cars returned: %d which have a model name: %s." % (len(cars), modelName))
+        moduleLogger.debug("%s - Number of cars returned: %d which have a model name: %s." %
+                           (methodName, len(cars), modelName))
         return cars
 
     def getAllCarsOfBrand(self, brandName):
+        methodName = inspect.stack()[0][3]
+
         cars = []
         modelIds = self.getAllBrandIdsOfBrand(brandName)
         for brandId in modelIds:
             cars.extend(self._getCarsById(brandId))
-        self.logger.debug("Number of cars returned: %d which have a brand name: %s." % (len(cars), brandName))
+        moduleLogger.debug("%s - Number of cars returned: %d which have a brand name: %s." %
+                           (methodName, len(cars), brandName))
         return cars
 
     def getAllCarsOfVersion(self, modelName, versionName):
+        methodName = inspect.stack()[0][3]
+
         cars = self._getCarsById(self.getVersionID(modelName, versionName)[0])
-        self.logger.debug("Number of cars returned: %d which have a model  and version name: %s - %s." % (len(cars), modelName, versionName))
+        moduleLogger.debug("%s - Number of cars returned: %d which have a model  and version name: %s - %s." %
+                            (methodName, len(cars), modelName, versionName))
         return cars

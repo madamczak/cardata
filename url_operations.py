@@ -6,19 +6,23 @@ from bs4 import BeautifulSoup
 import time
 import unicodedata
 from data_operations import DataCleaning
-from logger import setUpLogger
+from logger import Logger
+import inspect
+
+moduleLogger = Logger.setLogger("urlops")
 
 
 def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
+
 def _openLinkAndReturnSoup(url):
-    logger = setUpLogger("_openLinkAndReturnSoup")
     try:
         r = urllib.urlopen(url).read()
-    except Exception as e:
+    except Exception:
         time.sleep(60)
-        logger.info("Problems with parsing %s, sleep 60 seconds. Exception: %s" % (url, e.message))
+        methodName = inspect.stack()[0][3]
+        moduleLogger.info("%s - Problems with parsing %s, sleep 60 seconds. Exception: %s" % (methodName, url))
         return None
 
     return BeautifulSoup(r, "lxml")
@@ -44,7 +48,6 @@ class URLOperations(object):
 
     @staticmethod
     def getAllegroPrice(url):
-        logger = setUpLogger("getAllegroPrice")
         soup = _openLinkAndReturnSoup(url)
 
         try:
@@ -52,25 +55,27 @@ class URLOperations(object):
 
             return price
         except:
-            logger.error("Problems getting price from url: %s." % url)
+            methodName = inspect.stack()[0][3]
+            moduleLogger.error("%s - Problems getting price from url: %s." % (methodName, url))
             return 0
 
     @staticmethod
     def getOtomotoPrice(url):
-        logger = setUpLogger("getOtomotoPrice")
         soup = _openLinkAndReturnSoup(url)
 
         try:
-            price = int(soup.findAll("span", { "class" : "offer-price__number" })[0].text.split('  ')[0].replace(' ', ''))
+            price = int(soup.findAll("span", {"class":
+                                                   "offer-price__number" })[0].text.split('  ')[0].replace(' ', ''))
             # possible place for a debug log line
             return price
         except:
-            logger.error("Problems getting price from url: %s." % url)
+            methodName = inspect.stack()[0][3]
+            moduleLogger.error("%s - Problems getting price from url: %s." % (methodName, url))
             return 0
 
     @staticmethod
     def parseAllegroSite(url):
-        logger = setUpLogger("parseAllegroSite")
+        methodName = inspect.stack()[0][3]
         keys = []
         vals = []
 
@@ -78,11 +83,12 @@ class URLOperations(object):
         try:
             tables = soup.findChildren('table')
         except:
-            logger.error("Unable to parse site: %s. Just at the beginning there was no 'table' tag in the url." % url)
+            moduleLogger.error("%s - Unable to parse site: %s. "
+                               "Just at the beginning there was no 'table' tag in the url." % (methodName, url))
             return {}
 
         if len(tables) != 0:
-            logger.debug("Allegro type 1 site.")
+            moduleLogger.debug("%s - Allegro type 1 site." % methodName)
             #type 1 allegro site
             for t in tables[2:]:
                 rows = [row for row in t.findChildren(['th', 'tr']) if '<' not in row.text and row.text.strip()]
@@ -94,20 +100,21 @@ class URLOperations(object):
 
                 for cell in validCells:
                     if ":" in cell.text:
-                        keys.append(unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii','ignore').lower())
+                        keys.append(unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii', 'ignore').lower())
                     else:
-                        value = unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii','ignore').lower()
+                        value = unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii', 'ignore').lower()
 
                         if value.isdigit():
                             value = int(value)
 
                         vals.append(value)
         else:
-            logger.debug("Allegro type 2 site.")
+            moduleLogger.debug("%s - Allegro type 2 site." % methodName)
             #type 2 allegro site
             lis = [li.findChildren('span') for li in soup.findChildren('li') if len(li.findChildren('span')) == 2]
-            keys, vals = [unicodedata.normalize('NFKD', span[0].text.strip()).encode('ascii','ignore').lower() for span in lis], \
-                           [unicodedata.normalize('NFKD', span[1].text.strip()).encode('ascii','ignore').lower() for span in lis]
+            keys, vals = \
+                [unicodedata.normalize('NFKD', span[0].text.strip()).encode('ascii','ignore').lower() for span in lis],\
+                [unicodedata.normalize('NFKD', span[1].text.strip()).encode('ascii','ignore').lower() for span in lis]
         if keys and vals:
             keys.append('cena')
             try:
@@ -118,14 +125,15 @@ class URLOperations(object):
         toRet = dict(zip(keys, vals))
 
         if all([val == "0" or val == "" for val in toRet.values()]):
-            logger.debug("Something went wrong. Empty dictionary is returned. Check out the link: %s." % url)
+            moduleLogger.debug("%s - Something went wrong. Empty dictionary is returned. "
+                               "Check out the link: %s." % (methodName, url))
             return {}
         else:
             return toRet
 
     @staticmethod
     def parseOtoMotoSite(url):
-        logger = setUpLogger("parseOtoMotoSite")
+        methodName = inspect.stack()[0][3]
         keys = []
         vals = []
 
@@ -133,7 +141,8 @@ class URLOperations(object):
         try:
             tabele = soup.findChildren('ul')[6:10]
         except:
-            logger.debug("Unable to parse site: %s. Just at the beginning there was no 'ul' tag in the url." % url)
+            moduleLogger.debug("%s - Unable to parse site: %s. "
+                               "Just at the beginning there was no 'ul' tag in the url." % (methodName, url))
             return {}
 
         for tabela in tabele:
@@ -154,7 +163,8 @@ class URLOperations(object):
 
         toRet = dict(zip(keys, vals))
         if all([val == "0" or val == "" for val in toRet.values()]):
-            logger.debug("Unable to parse site: %s. Just at the beginning there was no 'ul' tag in the url." % url)
+            moduleLogger.debug("%s - Unable to parse site: %s. "
+                               "Just at the beginning there was no 'ul' tag in the url." % (methodName, url))
             return {}
 
         else:
@@ -163,14 +173,16 @@ class URLOperations(object):
 
     @staticmethod
     def parseOtoMotoSite2(url):
-        logger = setUpLogger("parseOtoMotoSite2")
+        #TODO: Refactor this.
+        methodName = inspect.stack()[0][3]
         d = {}
 
         soup = _openLinkAndReturnSoup(url)
         try:
             lis = soup.findChildren('li', {'class': 'offer-params__item'})
         except:
-            logger.debug("Unable to parse site: %s. Just at the beginning there was no 'li' tags in the url." % url)
+            moduleLogger.debug("%s - Unable to parse site: %s. "
+                               "Just at the beginning there was no 'li' tags in the url." % (methodName, url))
             return d
 
         for li in lis:
@@ -179,61 +191,75 @@ class URLOperations(object):
                 if li.findChildren('div')[0].text.strip() is not None:
 
                     try:
-                        d['rok produkcji'] = int(unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower())
+                        d['rok produkcji'] = \
+                            int(unicodedata.normalize
+                                ('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower())
                     except:
-                        logger.debug("Problems parsing url %s. There is something wrong with year of production." % url)
+                        moduleLogger.debug("%s - Problems parsing url %s. "
+                                           "There is something wrong with year of production." % (methodName, url))
                         d['rok produkcji'] = 0
 
             elif 'przebieg' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
                     try:
                         decVal = DataCleaning.stripDecimalValue(\
-                            (unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()))
+                            (unicodedata.normalize
+                             ('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()))
                         d['przebieg'] = int(decVal)
                     except:
-                        logger.debug("Problems parsing url %s. There is something wrong with mileage." % url)
+                        moduleLogger.debug("%s - Problems parsing url %s. "
+                                           "There is something wrong with mileage." % (methodName, url))
                         d['przebieg'] = 0
 
             elif 'rodzaj paliwa' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['rodzaj paliwa'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+                    d['rodzaj paliwa'] = unicodedata.normalize(
+                        'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
 
             elif 'kolor' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['kolor'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+                    d['kolor'] = unicodedata.normalize(
+                        'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
 
             elif 'liczba drzwi' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['liczba drzwi'] = DataCleaning.stripDecimalValue(unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower())
+                    d['liczba drzwi'] = DataCleaning.stripDecimalValue(
+                        unicodedata.normalize(
+                            'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower())
 
             elif 'moc' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
                     try:
                         decVal = DataCleaning.stripDecimalValue(\
-                            (unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()))
+                            (unicodedata.normalize(
+                                'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()))
                         d['moc'] = int(decVal)
                     except:
-                        logger.debug("Problems parsing url %s. There is something wrong with power." % url)
+                        moduleLogger.debug(
+                            "%s - Problems parsing url %s. There is something wrong with power." % (methodName, url))
                         d['moc'] = 0
 
             elif 'stan' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['stan'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+                    d['stan'] = unicodedata.normalize(
+                        'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
 
             elif re.match("pojemno.. skokowa", span[0].text.lower()):
                 if li.findChildren('div')[0].text.strip() is not None:
                     try:
                         decVal = DataCleaning.stripDecimalValue( \
-                            (unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii',
-                                                                                                          'ignore').lower()))
+                            (unicodedata.normalize(
+                                'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii', 'ignore').lower()))
                         d['pojemnosc skokowa'] = int(decVal)
                     except:
-                        logger.debug("Problems parsing url %s. There is something wrong with capacity." % url)
+                        moduleLogger.debug(
+                            "%s - Problems parsing url %s. There is something wrong with capacity." % (methodName, url))
                         d['pojemnosc skokowa'] = 0
 
             elif re.match("skrzynia bieg.w", span[0].text.lower()):
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['skrzynia biegow'] = unicodedata.normalize('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+                    d['skrzynia biegow'] = unicodedata.normalize(
+                        'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
 
         if d:
             price = URLOperations.getOtomotoPrice(url)
@@ -244,7 +270,7 @@ class URLOperations(object):
 
     @staticmethod
     def getAllBrands(topUrl):
-        logger = setUpLogger("getAllBrands")
+        methodName = inspect.stack()[0][3]
         dictionary = {}
 
         soup = _openLinkAndReturnSoup(topUrl)
@@ -260,7 +286,7 @@ class URLOperations(object):
                 if len(li.findChildren("span")) != 0 and len(li.findChildren('a')) != 0:
                     dictionary[li.findChildren("span")[0].text.strip()] = li.findChildren('a')[0]['href']
         else:
-            logger.debug("Problems getting brands. There is no top parameter - 'section' tag.")
+            moduleLogger.debug("%s - Problems getting brands. There is no top parameter - 'section' tag." % methodName)
             return {}
 
         if len(dictionary.values()) > 50 and topUrl != "https://allegro.pl/kategoria/samochody-osobowe-4029":
@@ -270,14 +296,13 @@ class URLOperations(object):
 
     @staticmethod
     def getLinksFromCategorySite(url):
-        logger = setUpLogger("getLinksFromCategorySite")
-
+        methodName = inspect.stack()[0][3]
         try:
             lastLinkSiteNumber = int(_openLinkAndReturnSoup(url).find_all("li", {"class" : "quantity"})[0].text)
-            logger.debug("There are currently %d categories in DB." % lastLinkSiteNumber)
+            moduleLogger.debug("%s - There are currently %d categories in DB." % (methodName, lastLinkSiteNumber))
         except:
             lastLinkSiteNumber = 1
-            logger.debug("There are no categories in DB.")
+            moduleLogger.debug("%s - There are no categories in DB." % methodName)
 
         pattern = re.compile("(http|https)://(www.)?otomoto.pl")
 
@@ -291,7 +316,7 @@ class URLOperations(object):
             try:
                 r = urllib.urlopen(address).read()
             except:
-                logger.error("Unable to open %s. Skipping." % address)
+                moduleLogger.error("%s - Unable to open %s. Skipping." % (methodName, address))
                 continue
 
             soup = BeautifulSoup(r, "lxml")
@@ -299,17 +324,18 @@ class URLOperations(object):
             for link in soup.find_all('a', href=True):
                 if (('https://allegro.pl/' in link['href'] or 'http://allegro.pl/' in link['href'])\
                     and '/' not in link['href'][19:] \
-                    and link['href'].strip() not in URLOperations.forbiddenLinks and "ref=navbar" not in link['href'].strip()) \
+                    and link['href'].strip() not in URLOperations.forbiddenLinks
+                    and "ref=navbar" not in link['href'].strip()) \
                         or pattern.match(link['href']):
 
                     if link['href'] not in links:
                         links.append(link['href'])
-        logger.debug("There are %d new links in %s category site url." % (len(links), url))
+        moduleLogger.debug("%s - There are %d new links in %s category site url." % (methodName, len(links), url))
         return links
 
     @staticmethod
     def getSubcategories(url):
-        logger = setUpLogger("getSubcategories")
+        methodName = inspect.stack()[0][3]
         links = []
         soup = _openLinkAndReturnSoup(url)
 
@@ -318,5 +344,6 @@ class URLOperations(object):
             if len(t.findChildren('a')) > 0:
                 links.append('http://allegro.pl/' + t.findChildren('a')[0]['href'])
 
-        logger.debug("There are %d new subcategories in %s category site url." % (len(links), url))
+        moduleLogger.debug("%s - There are %d new subcategories in %s category site url." %
+                           (methodName, len(links), url))
         return links

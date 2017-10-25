@@ -1,16 +1,18 @@
 import re
 import unicodedata
 
-from logger import setUpLogger
 from url_operations import URLOperations
 from db_operations import DataBase
 import time
 from collections import OrderedDict
 import datetime
+import inspect
 
+from logger import Logger
+moduleLogger = Logger.setLogger("cars.py")
 
 def ConstructBrandsTable(db):
-    logger = setUpLogger("constructLinkTable")
+    methodName = inspect.stack()[0][3]
 
     newBrands = 0
     currentBrandsTable = db.readAllData('Brands')
@@ -21,7 +23,7 @@ def ConstructBrandsTable(db):
     except:
         c = 0
 
-    logger.debug("Current number of brands: %d." % c)
+    moduleLogger.debug("%s - ConstructBrandsTable - Current number of brands: %d." % (methodName, c))
 
     currentBrandsLinks = [str(el[-1]) for el in currentBrandsTable]
 
@@ -53,29 +55,30 @@ def ConstructBrandsTable(db):
                         if ver[1] not in currentBrandsLinks and (pattern1.match(str(versionName)) or pattern2.match(str(versionName))):
 
                             s = """%d, "%s", "%s", "%s", "%s" """ % (c, it[0], model[0], ver[0], ver[1])
-                            logger.debug("New version found: %s." % s)
+                            moduleLogger.debug("%s - New version found: %s." % (methodName, s))
                             db.insertStringData("Brands", s)
                             c+=1
                             newBrands += 1
                 else:
                     if model[1] not in currentBrandsLinks and model[0] not in currentBrandsModels:
                         s = """%d, "%s", "%s", NULL, "%s" """ % (c, it[0], model[0], model[1])
-                        logger.debug("New model found: %s." % s)
+                        moduleLogger.debug("%s - New model found: %s." % (methodName, s))
                         db.insertStringData("Brands", s)
                         c+=1
                         newBrands += 1
         else:
             if it[1] not in currentBrandsLinks and it[0] not in currentBrands:
                 s = """%d, "%s", NULL, NULL, "%s" """ % (c, it[0], it[1])
-                logger.debug("New brand found: %s." % s)
+                moduleLogger.debug("%s - New brand found: %s." % (methodName, s))
                 db.insertStringData("Brands", s)
                 c+=1
                 newBrands += 1
-    logger.debug("Number of new brands found: %d." % newBrands)
+    moduleLogger.debug("%s - Number of new brands found: %d." % (methodName, newBrands))
     return newBrands
 
+
 def constructLinkTable(db):
-    logger = setUpLogger("constructLinkTable")
+    methodName = inspect.stack()[0][3]
 
     newLinks = 0
     linksTable = db.readAllData('Links')
@@ -87,29 +90,29 @@ def constructLinkTable(db):
     except:
         counter = 0
 
-    logger.debug("Current number of links: %d." % counter)
+    moduleLogger.debug("%s - Current number of links: %d." % (methodName, counter))
 
     categories = db.readAllData('Brands')
     for cat in categories:
-        logger.debug("Working on category link: %s." % cat[4])
+        moduleLogger.debug("%s - Working on category link: %s." % (methodName, cat[4]))
         links = [str(link) for link in URLOperations.getLinksFromCategorySite(cat[4]) if link not in current]
         for link in links:
-            logger.debug("Inserting link: %s to Links table." % link)
+            moduleLogger.debug("%s - Inserting link: %s to Links table." % (methodName, link))
             s = """ %d, %d, "%s", "%s", "%r" """ % (counter, cat[0], str(datetime.datetime.now()), link, False)
             db.insertStringData("Links", s)
             counter += 1
             newLinks += 1
 
-    logger.debug("Number of new links: %d." % newLinks)
+    moduleLogger.debug("%s - Number of new links: %d." % (methodName, newLinks))
     return newLinks
 
-def _checkDigit(textValue):
-    #val = DataCleaning.stripDecimalValue(textValue)
 
+def _checkDigit(textValue):
     if type(textValue) == int or textValue.isdigit():
         return '%d,' % int(textValue)
     else:
         return '0,'
+
 
 def _checkString(textValue):
     if type(textValue) == str:
@@ -117,8 +120,9 @@ def _checkString(textValue):
     else:
         return '"%s",' % unicodedata.normalize('NFKD', textValue).encode('ascii','ignore').lower()
 
+
 def constructAllegroCarInsert(b_id, l_id, carDict):
-    logger = setUpLogger("constructAllegroCarInsert")
+    methodName = inspect.stack()[0][3]
 
     s = """"""
     s+= '%d,' % int(b_id)
@@ -145,12 +149,13 @@ def constructAllegroCarInsert(b_id, l_id, carDict):
     except:
         s += "0"
 
-    logger.debug(s)
+    moduleLogger.debug("%s - %s " % (methodName, s))
 
     return s
 
+
 def constructOtomotoCarInsert(b_id, l_id, carDict):
-    logger = setUpLogger("constructOtomotoCarInsert")
+    methodName = inspect.stack()[0][3]
 
     s = """"""
     s+= '%d,' % int(b_id)
@@ -170,9 +175,10 @@ def constructOtomotoCarInsert(b_id, l_id, carDict):
     except:
         s += "0"
 
-    logger.debug(s)
+    moduleLogger.debug("%s - %s" % (methodName, s))
 
     return s
+
 
 def _scoreFour(carDict):
     score = 0
@@ -183,27 +189,30 @@ def _scoreFour(carDict):
 
     return score < 5
 
+
 def _verifyDictionary(carDict):
     return (carDict and _scoreFour(carDict))
 
+
 def ConstructCarsTable(db):
-    logger = setUpLogger("ConstructCarsTable")
+    methodName = inspect.stack()[0][3]
+
     newCars = 0
 
     for entry in db.readAllData('Links'):
         if entry[4] == 'False':
-            logger.debug("Link has not been parsed. Link: %s" % entry[3])
+            moduleLogger.debug("%s - Link has not been parsed. Link: %s" % (methodName, entry[3]))
 
             if 'allegro' in entry[3]:
                 d = URLOperations.parseAllegroSite(entry[3])
 
                 if _verifyDictionary(d):
-                    logger.debug("Verified positively. Will be inserted in CarData table.")
+                    moduleLogger.debug("%s - Verified positively. Will be inserted in CarData table." % methodName)
                     s = constructAllegroCarInsert(entry[1], entry[0], d)
                     db.insertStringData("CarData", s)
                     newCars += 1
                 else:
-                    logger.debug("Verified negatively. Will be inserted in InvalidLinks table.")
+                    moduleLogger.debug("%s - Verified negatively. Will be inserted in InvalidLinks table." % methodName)
                     s = """ "%d", "%s", "%s", "True" """ % (entry[0], str(datetime.datetime.now()), entry[3])
                     db.insertStringData("InvalidLinks", s)
 
@@ -214,22 +223,25 @@ def ConstructCarsTable(db):
                     d = URLOperations.parseOtoMotoSite(entry[3])
 
                 if _verifyDictionary(d):
-                    logger.debug("Verified positively. Will be inserted in CarData table.")
+                    moduleLogger.debug("%s - Verified positively. Will be inserted in CarData table." % methodName)
                     s = constructOtomotoCarInsert(entry[1], entry[0], d)
                     db.insertStringData("CarData", s)
                     newCars += 1
                 else:
-                    logger.debug("Verified negatively. Will be inserted in InvalidLinks table.")
-                    s = """ "%d", "%s", "%s", "True" """ % (entry[0], str(datetime.datetime.now()), entry[3])
+                    moduleLogger.debug("%s - Verified negatively. Will be inserted in InvalidLinks table.")
+                    s = """ "%d", "%s", "%s", "True" """ % (methodName, entry[0], str(datetime.datetime.now()), entry[3])
                     db.insertStringData("InvalidLinks", s)
 
             db.executeSqlCommand("""UPDATE Links SET parsed = "True" WHERE link = "%s" """ % entry[3])
-        else:
-            logger.debug("Link has been parsed. Link: %s" % entry[3])
+        #else:
+            moduleLogger.debug("%s - Link has been parsed. Link: %s" % (methodName, entry[3]))
 
     return newCars
 
+
 def constructDBTables(db):
+    methodName = inspect.stack()[0][3]
+
     brandsDict = OrderedDict(
         [('B_Id', "INT"), ('brandName', "TEXT"), ('modelName', "TEXT"), ('version', "TEXT"), ('link', "TEXT")])
     linksDict = OrderedDict([('L_Id', "INT"), ('B_Id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')])
@@ -242,9 +254,11 @@ def constructDBTables(db):
     db.createTable('CarData', carDataDict)
     db.createTable('InvalidLinks', InvalidLinksDict)
 
+
 def collect():
-    logger = setUpLogger("collect")
-    logger.info('Started: %s' % datetime.datetime.now().strftime("%d-%m-%Y %H:%M"))
+    methodName = inspect.stack()[0][3]
+
+    moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
 
     db = DataBase("cars_work4.db")
     constructDBTables(db)
@@ -253,25 +267,24 @@ def collect():
         beginBrands = time.time()
         currentDate = datetime.datetime.now()
         newBrands = ConstructBrandsTable(db)
-        logger.info("Brands done. %s. Number of new brands: %d. Done in %d seconds." % (
+        moduleLogger.info("%s - Brands done. %s. Number of new brands: %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newBrands, time.time() - beginBrands))
 
         beginLinks = time.time()
         newLinks = constructLinkTable(db)
-        logger.info("Links done.  %s. Number of new links:  %d. Done in %d seconds." % (
+        moduleLogger.info("%s - Links done.  %s. Number of new links:  %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newLinks, time.time() - beginLinks))
         now = time.time()
 
         beginCars = time.time()
         newCars = ConstructCarsTable(db)
-        logger.info("Cars done.   %s. Number of new cars:   %d. Done in %d seconds." % (
+        moduleLogger.info("%s - Cars done.   %s. Number of new cars:   %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newCars, time.time() - beginCars))
-
 
         message = '\n%s\n' % currentDate.strftime("%d-%m-%Y %H:%M")
         message += "New Brands: %d\nNew Links:  %d\nNew Cars:   %d\n" % (newBrands, newLinks, newCars)
         message += "All done in %d seconds\n\n" % (time.time() - now)
-        logger.info(message)
+        moduleLogger.info("%s - %s" % (methodName, message))
 
 
 if __name__ == "__main__":
