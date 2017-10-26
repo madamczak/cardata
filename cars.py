@@ -15,27 +15,10 @@ def ConstructBrandsTable(db):
     methodName = inspect.stack()[0][3]
 
     newBrands = 0
-    currentBrandsTable = db.readAllData('Brands')
     d = {}
-
-    try:
-        c = int(currentBrandsTable[-1][0])
-    except:
-        c = 0
+    c = db.countRecordsInTable("Brands")
 
     moduleLogger.debug("%s - ConstructBrandsTable - Current number of brands: %d." % (methodName, c))
-
-    currentBrandsLinks = [str(el[-1]) for el in currentBrandsTable]
-
-    currentBrands = []
-    currentBrandsModels = []
-
-    for brand in currentBrandsTable:
-        try:
-            currentBrands.append(str(brand[1]))
-            currentBrandsModels.append(str(brand[2]))
-        except:
-            pass
 
     pattern1 = re.compile(".*\(\d+-")
     pattern2 = re.compile(".*T\d")
@@ -52,7 +35,8 @@ def ConstructBrandsTable(db):
                     for ver in versions.items():
                         d[it[0]][(model[0])].append(ver)
                         versionName = unicodedata.normalize('NFKD', ver[0]).encode('ascii','ignore').lower()
-                        if ver[1] not in currentBrandsLinks and (pattern1.match(str(versionName)) or pattern2.match(str(versionName))):
+                        if not db.valueIsPresentInColumnOfATable(ver[1], 'link', "Brands") \
+                                and (pattern1.match(str(versionName)) or pattern2.match(str(versionName))):
 
                             s = """%d, "%s", "%s", "%s", "%s" """ % (c, it[0], model[0], ver[0], ver[1])
                             moduleLogger.debug("%s - New version found: %s." % (methodName, s))
@@ -60,14 +44,16 @@ def ConstructBrandsTable(db):
                             c+=1
                             newBrands += 1
                 else:
-                    if model[1] not in currentBrandsLinks and model[0] not in currentBrandsModels:
+                    if not db.valueIsPresentInColumnOfATable(model[1], 'link', "Brands") \
+                            and not db.valueIsPresentInColumnOfATable(model[0], 'modelName', "Brands"):
                         s = """%d, "%s", "%s", NULL, "%s" """ % (c, it[0], model[0], model[1])
                         moduleLogger.debug("%s - New model found: %s." % (methodName, s))
                         db.insertStringData("Brands", s)
                         c+=1
                         newBrands += 1
         else:
-            if it[1] not in currentBrandsLinks and it[0] not in currentBrands:
+            if not db.valueIsPresentInColumnOfATable(it[1], 'link', "Brands") \
+                    and not db.valueIsPresentInColumnOfATable(it[0], 'brandName', "Brands"):
                 s = """%d, "%s", NULL, NULL, "%s" """ % (c, it[0], it[1])
                 moduleLogger.debug("%s - New brand found: %s." % (methodName, s))
                 db.insertStringData("Brands", s)
@@ -81,21 +67,16 @@ def constructLinkTable(db):
     methodName = inspect.stack()[0][3]
 
     newLinks = 0
-    linksTable = db.readAllData('Links')
-
-    current = [str(l[3]) for l in linksTable]
-
-    try:
-        counter = int(linksTable[-1][0]) + 1
-    except:
-        counter = 0
+    counter = db.countRecordsInTable("Links") + 1
 
     moduleLogger.debug("%s - Current number of links: %d." % (methodName, counter))
-
-    categories = db.readAllData('Brands')
+    categories = db.readAllDataGenerator('Brands')
     for cat in categories:
         moduleLogger.debug("%s - Working on category link: %s." % (methodName, cat[4]))
-        links = [str(link) for link in URLOperations.getLinksFromCategorySite(cat[4]) if link not in current]
+
+        links = [str(link) for link in URLOperations.getLinksFromCategorySite(cat[4])
+                 if not db.valueIsPresentInColumnOfATable(str(link), 'link', "Links")]
+
         for link in links:
             moduleLogger.debug("%s - Inserting link: %s to Links table." % (methodName, link))
             s = """ %d, %d, "%s", "%s", "%r" """ % (counter, cat[0], str(datetime.datetime.now()), link, False)
@@ -199,7 +180,7 @@ def ConstructCarsTable(db):
 
     newCars = 0
 
-    for entry in db.readAllData('Links'):
+    for entry in db.readAllDataGenerator('Links'):
         if entry[4] == 'False':
             moduleLogger.debug("%s - Link has not been parsed. Link: %s" % (methodName, entry[3]))
 
@@ -233,8 +214,8 @@ def ConstructCarsTable(db):
                     db.insertStringData("InvalidLinks", s)
 
             db.executeSqlCommand("""UPDATE Links SET parsed = "True" WHERE link = "%s" """ % entry[3])
-        #else:
-            moduleLogger.debug("%s - Link has been parsed. Link: %s" % (methodName, entry[3]))
+        else:
+            moduleLogger.debug("%s - Link has been already parsed. Link: %s" % (methodName, entry[3]))
 
     return newCars
 
@@ -260,13 +241,14 @@ def collect():
 
     moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
 
-    db = DataBase("cars_work4.db")
+    db = DataBase("refactor_test.db")
     constructDBTables(db)
 
     while True:
         beginBrands = time.time()
         currentDate = datetime.datetime.now()
         newBrands = ConstructBrandsTable(db)
+        newBrands = 0
         moduleLogger.info("%s - Brands done. %s. Number of new brands: %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newBrands, time.time() - beginBrands))
 

@@ -37,7 +37,29 @@ class DataBase(object):
         self.conn.commit()
         moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
 
+    def readAllDataGenerator(self, tableName, amount=1000):
+        methodName = inspect.stack()[0][3]
+        command = "SELECT * FROM %s" % tableName
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
+        self.c.execute(command)
+        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+
+        counter = 0
+        while True:
+            rows = self.c.fetchmany(amount)
+            if not rows:
+                moduleLogger.debug(
+                    "%s - End of rows returned from command: %s. There was around %d records in %s table." %
+                                   (methodName, command, counter * amount, tableName))
+                break
+            moduleLogger.debug("%s - Fetching another %d rows." % (methodName, amount))
+            counter += 1
+            for row in rows:
+                yield row
+
+    # this is obsolete, use readAllDataGenerator
     def readAllData(self, tableName):
+
         methodName = inspect.stack()[0][3]
 
         command = "SELECT * FROM %s" % tableName
@@ -156,3 +178,25 @@ class DataBase(object):
         moduleLogger.debug("%s - Number of cars returned: %d which have a model  and version name: %s - %s." %
                             (methodName, len(cars), modelName, versionName))
         return cars
+
+    def valueIsPresentInColumnOfATable(self, value, column, table):
+        methodName = inspect.stack()[0][3]
+
+        command = """SELECT * FROM %s WHERE "%s" = "%s" """ % (table, column, value)
+        self.c.execute(command)
+        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        valueIsPresentInDb = self.c.fetchall() != []
+
+        if valueIsPresentInDb:
+            moduleLogger.info("%s - Value: %s is present in table: %s." % (methodName, value, table))
+        else:
+            moduleLogger.info("%s - Value: %s is NOT present in table: %s." % (methodName, value, table))
+
+
+        return valueIsPresentInDb
+
+    def countRecordsInTable(self, tableName):
+        command = "SELECT count(*) FROM %s" % tableName
+        self.c.execute(command)
+        output = self.c.fetchone()
+        return int(output[0])

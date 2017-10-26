@@ -19,10 +19,10 @@ def is_ascii(s):
 def _openLinkAndReturnSoup(url):
     try:
         r = urllib.urlopen(url).read()
-    except Exception:
+    except:
         time.sleep(60)
         methodName = inspect.stack()[0][3]
-        moduleLogger.info("%s - Problems with parsing %s, sleep 60 seconds. Exception: %s" % (methodName, url))
+        moduleLogger.info("%s - Problems with parsing %s, sleep 60 seconds." % (methodName, url))
         return None
 
     return BeautifulSoup(r, "lxml")
