@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
-from data_operations import DataOperations
-from db_operations import DataBase
+from OperationUtils.data_operations import DataOperations
+from OperationUtils.db_operations import DataBase
 
 
 class Plots(object):

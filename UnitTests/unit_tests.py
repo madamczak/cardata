@@ -1,4 +1,5 @@
-from url_operations import _openLinkAndReturnSoup, URLOperations
+from OperationUtils.url_operations import _openLinkAndReturnSoup, URLOperations
+import OperationUtils.url_operations
 import unittest
 from mock import patch
 from bs4 import BeautifulSoup
@@ -11,17 +12,17 @@ otomotoSoup = BeautifulSoup(open("otomotoSiteType2BMW7.html").read(), "lxml")
 
 class AllegroUrlParsing(unittest.TestCase):
 
-    @patch('url_operations._openLinkAndReturnSoup', return_value=allegroSoup)
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=allegroSoup)
     def test_can_parse_price(self, mockSoup):
         price = URLOperations.getAllegroPrice(None)
         self.assertEqual(303000, price)
 
-    @patch('url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_0_on_invalid_soup(self, mockSoup):
         price = URLOperations.getAllegroPrice(None)
         self.assertEqual(0, price)
 
-    @patch('url_operations._openLinkAndReturnSoup', return_value=allegroSoup)
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=allegroSoup)
     def test_can_parse_site_properly(self, mockSoup):
         parsedDict = URLOperations.parseAllegroSite(None)
         self.assertNotEqual({}, parsedDict)
@@ -35,24 +36,24 @@ class AllegroUrlParsing(unittest.TestCase):
         self.assertEqual('uzywany', parsedDict.get('stan:'))
         self.assertEqual('automatyczna dwusprzegowa (dct, dsg)', parsedDict.get('skrzynia biegow:'))
 
-    @patch('url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_empty_dict_on_invalid_soup(self, mockSoup):
         parsedDict = URLOperations.parseAllegroSite(None)
         self.assertEqual({}, parsedDict)
 
 class OtomotoUrlParsing(unittest.TestCase):
 
-    @patch('url_operations._openLinkAndReturnSoup', return_value=otomotoSoup)
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=otomotoSoup)
     def test_can_parse_price(self, mockSoup):
         price = URLOperations.getOtomotoPrice(None)
         self.assertEqual(729000, price)
 
-    @patch('url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_0_on_invalid_soup(self, mockSoup):
         price = URLOperations.getOtomotoPrice(None)
         self.assertEqual(0, price)
 
-    @patch('url_operations._openLinkAndReturnSoup', return_value=otomotoSoup)
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=otomotoSoup)
     def test_can_parse_type_2_site_properly(self, mockSoup):
         parsedDict = URLOperations.parseOtoMotoSite2(None)
         self.assertNotEqual({}, parsedDict)
@@ -65,7 +66,7 @@ class OtomotoUrlParsing(unittest.TestCase):
         self.assertEqual('4', parsedDict.get('liczba drzwi'))
         self.assertEqual('automatyczna hydrauliczna (klasyczna)', parsedDict.get('skrzynia biegow'))
 
-    @patch('url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_empty_dict_on_invalid_soup_from_type_2_site(self, mockSoup):
         parsedDict = URLOperations.parseOtoMotoSite2(None)
         self.assertEqual({}, parsedDict)

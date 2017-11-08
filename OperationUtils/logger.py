@@ -3,7 +3,7 @@ import logging
 
 class Logger(object):
     @staticmethod
-    def setLogger(name, filePath = '/media/pi/usb/logCarData/cardata.log'):
+    def setLogger(name, filePath = 'cardata.log'):#/media/pi/usb/logCarData/
         logger = logging.getLogger(name)
         logger.setLevel(logging.DEBUG)
 

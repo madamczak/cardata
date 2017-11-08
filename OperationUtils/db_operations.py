@@ -1,5 +1,5 @@
 import sqlite3
-from logger import Logger
+from OperationUtils.logger import Logger
 import inspect
 
 

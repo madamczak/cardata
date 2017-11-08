@@ -1,14 +1,14 @@
 import re
 import unicodedata
 
-from url_operations import URLOperations
-from db_operations import DataBase
+from OperationUtils.url_operations import URLOperations
+from OperationUtils.db_operations import DataBase
 import time
 from collections import OrderedDict
 import datetime
 import inspect
 
-from logger import Logger
+from OperationUtils.logger import Logger
 moduleLogger = Logger.setLogger("cars.py")
 
 def ConstructBrandsTable(db):
@@ -243,12 +243,12 @@ def constructDBTables(db):
     db.createTable('InvalidLinks', InvalidLinksDict)
 
 
-def collect():
+def collect(nameOfDb):
     methodName = inspect.stack()[0][3]
 
     moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
 
-    db = DataBase("refactor_test2.db")
+    db = DataBase(nameOfDb)
     constructDBTables(db)
 
     while True:
@@ -278,4 +278,4 @@ def collect():
 
 
 if __name__ == "__main__":
-    collect()
+    collect("refactor_test3.db")

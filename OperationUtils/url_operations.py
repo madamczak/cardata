@@ -5,8 +5,8 @@ import urllib
 from bs4 import BeautifulSoup
 import time
 import unicodedata
-from data_operations import DataCleaning
-from logger import Logger
+from OperationUtils.data_operations import DataCleaning
+from OperationUtils.logger import Logger
 import inspect
 
 moduleLogger = Logger.setLogger("urlops")

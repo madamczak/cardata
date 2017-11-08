@@ -1,5 +1,5 @@
 import re
-from logger import Logger
+from OperationUtils.logger import Logger
 import inspect
 
 moduleLogger = Logger.setLogger("dataOps")
