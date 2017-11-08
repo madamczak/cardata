@@ -16,9 +16,10 @@ def ConstructBrandsTable(db):
 
     newBrands = 0
     d = {}
-    c = db.countRecordsInTable("Brands")
 
-    moduleLogger.debug("%s - ConstructBrandsTable - Current number of brands: %d." % (methodName, c))
+    c = db.getMaxFromColumnInTable("B_id", "Brands") + 1
+
+    moduleLogger.debug("%s - ConstructBrandsTable - Current number of brands: %d." % (methodName, c - 1))
 
     pattern1 = re.compile(".*\(\d+-")
     pattern2 = re.compile(".*T\d")
@@ -67,9 +68,9 @@ def constructLinkTable(db):
     methodName = inspect.stack()[0][3]
 
     newLinks = 0
-    counter = db.countRecordsInTable("Links") + 1
+    counter = db.getMaxFromColumnInTable("L_id", "Links") + 1
 
-    moduleLogger.debug("%s - Current number of links: %d." % (methodName, counter))
+    moduleLogger.debug("%s - Current number of links: %d." % (methodName, counter - 1))
     categories = db.readAllDataGenerator('Brands')
     for cat in categories:
         moduleLogger.debug("%s - Working on category link: %s." % (methodName, cat[4]))
@@ -209,8 +210,8 @@ def ConstructCarsTable(db):
                     db.insertStringData("CarData", s)
                     newCars += 1
                 else:
-                    moduleLogger.debug("%s - Verified negatively. Will be inserted in InvalidLinks table.")
-                    s = """ "%d", "%s", "%s", "True" """ % (methodName, entry[0], str(datetime.datetime.now()), entry[3])
+                    moduleLogger.debug("%s - Verified negatively. Will be inserted in InvalidLinks table." % methodName)
+                    s = """ "%d", "%s", "%s", "True" """ % (entry[0], str(datetime.datetime.now()), entry[3])
                     db.insertStringData("InvalidLinks", s)
 
             db.executeSqlCommand("""UPDATE Links SET parsed = "True" WHERE link = "%s" """ % entry[3])
@@ -241,19 +242,20 @@ def collect():
 
     moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
 
-    db = DataBase("refactor_test.db")
+    db = DataBase("refactor_test2.db")
     constructDBTables(db)
 
     while True:
         beginBrands = time.time()
         currentDate = datetime.datetime.now()
         newBrands = ConstructBrandsTable(db)
-        newBrands = 0
+        #newBrands = 0
         moduleLogger.info("%s - Brands done. %s. Number of new brands: %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newBrands, time.time() - beginBrands))
 
         beginLinks = time.time()
         newLinks = constructLinkTable(db)
+        #newLinks = 0
         moduleLogger.info("%s - Links done.  %s. Number of new links:  %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newLinks, time.time() - beginLinks))
         now = time.time()

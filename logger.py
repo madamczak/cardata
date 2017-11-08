@@ -3,13 +3,13 @@ import logging
 
 class Logger(object):
     @staticmethod
-    def setLogger(name):
+    def setLogger(name, filePath = '/media/pi/usb/logCarData/cardata.log'):
         logger = logging.getLogger(name)
         logger.setLevel(logging.DEBUG)
 
         formatter = logging.Formatter('%(name)s - %(levelname)s: %(message)s')
-        fh = logging.FileHandler('cardata.log')
-        fh.setLevel(logging.DEBUG)
+        fh = logging.FileHandler(filePath)
+        fh.setLevel(logging.INFO)
         ch = logging.StreamHandler()
         ch.setLevel(logging.INFO)
 

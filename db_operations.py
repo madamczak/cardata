@@ -26,7 +26,7 @@ class DataBase(object):
 
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
     def insertStringData(self, tableName, stringData):
         methodName = inspect.stack()[0][3]
@@ -35,14 +35,14 @@ class DataBase(object):
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         self.conn.commit()
-        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
     def readAllDataGenerator(self, tableName, amount=1000):
         methodName = inspect.stack()[0][3]
         command = "SELECT * FROM %s" % tableName
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
         counter = 0
         while True:
@@ -65,9 +65,9 @@ class DataBase(object):
         command = "SELECT * FROM %s" % tableName
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
         items = self.c.fetchall()
-        moduleLogger.info("%s - Number of items returned: %d." % (methodName, len(items)))
+        moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(items)))
         return items
 
     def executeSqlCommand(self, command):
@@ -76,7 +76,7 @@ class DataBase(object):
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         self.conn.commit()
-        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
 
     def _getAllIds(self, colName, name):
@@ -85,7 +85,7 @@ class DataBase(object):
         command = """SELECT B_Id FROM Brands WHERE %s = "%s" """ % (colName, name)
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
         output = self.c.fetchall()
 
         if output:
@@ -101,7 +101,7 @@ class DataBase(object):
         command = """SELECT * FROM CarData WHERE B_Id = "%s" """ % brandId
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
         output = self.c.fetchall()
 
         if output:
@@ -122,7 +122,7 @@ class DataBase(object):
         command = """SELECT B_Id FROM Brands WHERE "modelName" = "%s" and "version" = "%s" """ % (modelName, version)
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
         output = self.c.fetchall()
 
         if output:
@@ -138,7 +138,7 @@ class DataBase(object):
         command = """SELECT * FROM CarData """
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
-        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
         output = self.c.fetchall()
 
         if output:
@@ -184,13 +184,13 @@ class DataBase(object):
 
         command = """SELECT * FROM %s WHERE "%s" = "%s" """ % (table, column, value)
         self.c.execute(command)
-        moduleLogger.info("%s - Command: %s executed successfully." % (methodName, command))
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
         valueIsPresentInDb = self.c.fetchall() != []
 
         if valueIsPresentInDb:
-            moduleLogger.info("%s - Value: %s is present in table: %s." % (methodName, value, table))
+            moduleLogger.debug("%s - Value: %s is present in table: %s." % (methodName, value, table))
         else:
-            moduleLogger.info("%s - Value: %s is NOT present in table: %s." % (methodName, value, table))
+            moduleLogger.debug("%s - Value: %s is NOT present in table: %s." % (methodName, value, table))
 
 
         return valueIsPresentInDb
@@ -200,3 +200,13 @@ class DataBase(object):
         self.c.execute(command)
         output = self.c.fetchone()
         return int(output[0])
+
+    def getMaxFromColumnInTable(self, column, table):
+        command = """SELECT MAX(%s) FROM %s""" % (column, table)
+        self.c.execute(command)
+        output = self.c.fetchone()
+
+        if output and output[0] is not None:
+            return int(output[0])
+        else:
+            return 0
