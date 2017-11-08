@@ -111,7 +111,13 @@ def constructAllegroCarInsert(b_id, l_id, carDict):
     s+= '%d,' % int(l_id)
     s += _checkDigit(carDict.get('rok produkcji:', 0))#
     s += _checkDigit(carDict.get('przebieg [km]:', 0))#
-    s += _checkDigit(carDict.get('moc [KM]:', 0))#
+
+    #TODO: use regex here
+    if (carDict.get('moc [KM]:', 0) == 0):
+        s += _checkDigit(carDict.get('moc [km]:', 0))  #
+    else:
+        s += _checkDigit(carDict.get('moc [KM]:', 0))  #
+
     s += _checkDigit(carDict.get('pojemnosc silnika [cm3]:', 0))#
 
     s+= '"%s",' % str(carDict.get('rodzaj paliwa:', ""))#

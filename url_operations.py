@@ -64,9 +64,8 @@ class URLOperations(object):
         soup = _openLinkAndReturnSoup(url)
 
         try:
-            price = int(soup.findAll("span", {"class":
-                                                   "offer-price__number" })[0].text.split('  ')[0].replace(' ', ''))
-            # possible place for a debug log line
+            price = int(soup.findAll("span",
+                                 {"class": "offer-price__number" })[0].text.split('  ')[0].replace(' ', ''))
             return price
         except:
             methodName = inspect.stack()[0][3]
