@@ -8,6 +8,8 @@ from bs4 import BeautifulSoup
 emptySoup = BeautifulSoup("", "lxml")
 allegroSoup = BeautifulSoup(open("UnitTests/allegroSiteBMW7.html").read(), "lxml")
 otomotoSoup = BeautifulSoup(open("UnitTests/otomotoSiteType2BMW7.html").read(), "lxml")
+rootCategorySoup = BeautifulSoup(open("UnitTests/rootCategorySite.html").read(), "lxml")
+acuraCategorySoup = BeautifulSoup(open("UnitTests/acuraCategorySite.html").read(), "lxml")
 
 
 class AllegroUrlParsing(unittest.TestCase):
@@ -90,6 +92,32 @@ class OtomotoUrlParsing(unittest.TestCase):
     # def test_returns_empty_dict_on_invalid_soup_from_type_2_site(self, mockSoup):
     #     parsedDict = URLOperations.parseAllegroSite(None)
     #     self.assertEqual({}, parsedDict)
+
+class CategoriesUrlParsing(unittest.TestCase):
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=rootCategorySoup)
+    def test_returns_categories(self, mockSoup):
+        parsedDict = URLOperations.getAllBrands("https://allegro.pl/kategoria/samochody-osobowe-4029")
+        self.assertNotEqual({}, parsedDict)
+        self.assertTrue("Volkswagen" in parsedDict.keys())
+        self.assertTrue("Opel" in parsedDict.keys())
+        self.assertTrue("Renault" in parsedDict.keys())
+        self.assertTrue("Alfa Romeo" in parsedDict.keys())
+
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=rootCategorySoup)
+    def test_does_not_return_categories_with_invalid_url(self, mockSoup):
+        parsedDict = URLOperations.getAllBrands("INVALID URL")
+        self.assertEqual({}, parsedDict)
+
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    def test_returns_empty_dict_on_invalid_category_url(self, mockSoup):
+        parsedDict = URLOperations.getAllBrands(None)
+        self.assertEqual({}, parsedDict)
+
+    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=None)
+    def test_returns_empty_dict_on_None_soup(self, mockSoup):
+        parsedDict = URLOperations.getAllBrands(None)
+        self.assertEqual({}, parsedDict)
+
 
 
 
