@@ -3,6 +3,9 @@ python:
   - "2.7"
 # command to install dependencies
 script: python unit_tests.py
+install:
+  - pip install beautifulsoup4
+
 branches:
   only:
     - master
