@@ -6,8 +6,8 @@ from bs4 import BeautifulSoup
 
 
 emptySoup = BeautifulSoup("", "lxml")
-allegroSoup = BeautifulSoup(open("allegroSiteBMW7.html").read(), "lxml")
-otomotoSoup = BeautifulSoup(open("otomotoSiteType2BMW7.html").read(), "lxml")
+allegroSoup = BeautifulSoup(open("UnitTests/allegroSiteBMW7.html").read(), "lxml")
+otomotoSoup = BeautifulSoup(open("UnitTests/otomotoSiteType2BMW7.html").read(), "lxml")
 
 
 class AllegroUrlParsing(unittest.TestCase):
