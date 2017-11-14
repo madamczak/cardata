@@ -1,6 +1,6 @@
 import re
-import unicodedata
 
+from OperationUtils.data_operations import DataCleaning
 from OperationUtils.url_operations import URLOperations
 from OperationUtils.db_operations import DataBase
 import time
@@ -35,7 +35,7 @@ def ConstructBrandsTable(db):
                 if not all([k in models.keys() for k in versions.keys()]):
                     for ver in versions.items():
                         d[it[0]][(model[0])].append(ver)
-                        versionName = unicodedata.normalize('NFKD', ver[0]).encode('ascii','ignore').lower()
+                        versionName = DataCleaning.normalize(ver[0])
                         if not db.valueIsPresentInColumnOfATable(ver[1], 'link', "Brands") \
                                 and (pattern1.match(str(versionName)) or pattern2.match(str(versionName))):
 
@@ -100,7 +100,7 @@ def _checkString(textValue):
     if type(textValue) == str:
         return '"%s",' % textValue
     else:
-        return '"%s",' % unicodedata.normalize('NFKD', textValue).encode('ascii','ignore').lower()
+        return '"%s",' % DataCleaning.normalize(textValue)
 
 
 def constructAllegroCarInsert(b_id, l_id, carDict):
@@ -129,7 +129,7 @@ def constructAllegroCarInsert(b_id, l_id, carDict):
     if type(gearboxValue) == str:
         s+= '"%s",' % gearboxValue
     else:
-        s+= '"%s",' % unicodedata.normalize('NFKD', gearboxValue).encode('ascii','ignore').lower()
+        s+= '"%s",' % DataCleaning.normalize(gearboxValue)
 
     try:
 

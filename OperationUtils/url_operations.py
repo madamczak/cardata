@@ -4,7 +4,6 @@ import re
 import urllib
 from bs4 import BeautifulSoup
 import time
-import unicodedata
 from OperationUtils.data_operations import DataCleaning
 from OperationUtils.logger import Logger
 import inspect
@@ -98,9 +97,9 @@ class URLOperations(object):
 
                 for cell in validCells:
                     if ":" in cell.text:
-                        keys.append(unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii', 'ignore').lower())
+                        keys.append(DataCleaning.normalize(cell.text))
                     else:
-                        value = unicodedata.normalize('NFKD', cell.text.strip()).encode('ascii', 'ignore').lower()
+                        value = DataCleaning.normalize(cell.text)
 
                         if value.isdigit():
                             value = int(value)
@@ -111,8 +110,8 @@ class URLOperations(object):
             #type 2 allegro site
             lis = [li.findChildren('span') for li in soup.findChildren('li') if len(li.findChildren('span')) == 2]
             keys, vals = \
-                [unicodedata.normalize('NFKD', span[0].text.strip()).encode('ascii','ignore').lower() for span in lis],\
-                [unicodedata.normalize('NFKD', span[1].text.strip()).encode('ascii','ignore').lower() for span in lis]
+                [DataCleaning.normalize(span[0].text) for span in lis],\
+                [DataCleaning.normalize(span[1].text) for span in lis]
         if keys and vals:
             keys.append('cena')
             try:
@@ -146,9 +145,9 @@ class URLOperations(object):
         for tabela in tabele:
             for li in tabela.findChildren('li'):
                 for small, span in zip(li.findChildren('small'), li.findChildren('span')):
-                    keys.append(unicodedata.normalize('NFKD', small.text).encode('ascii','ignore').lower())
+                    keys.append(DataCleaning.normalize(small.text))
 
-                    value = unicodedata.normalize('NFKD', span.text).encode('ascii','ignore').lower()
+                    value = DataCleaning.normalize(span.text)
 
                     if value.isdigit():
                         value = int(value)
@@ -189,9 +188,7 @@ class URLOperations(object):
                 if li.findChildren('div')[0].text.strip() is not None:
 
                     try:
-                        d['rok produkcji'] = \
-                            int(unicodedata.normalize
-                                ('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower())
+                        d['rok produkcji'] = int(DataCleaning.normalize(li.findChildren('div')[0].text))
                     except:
                         moduleLogger.debug("%s - Problems parsing url %s. "
                                            "There is something wrong with year of production." % (methodName, url))
@@ -200,9 +197,7 @@ class URLOperations(object):
             elif 'przebieg' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
                     try:
-                        decVal = DataCleaning.stripDecimalValue(\
-                            (unicodedata.normalize
-                             ('NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()))
+                        decVal = DataCleaning.stripDecimalValue(DataCleaning.normalize(li.findChildren('div')[0].text))
                         d['przebieg'] = int(decVal)
                     except:
                         moduleLogger.debug("%s - Problems parsing url %s. "
@@ -211,25 +206,20 @@ class URLOperations(object):
 
             elif 'rodzaj paliwa' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['rodzaj paliwa'] = unicodedata.normalize(
-                        'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+                    d['rodzaj paliwa'] = DataCleaning.normalize(li.findChildren('div')[0].text)
 
             elif 'kolor' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['kolor'] = unicodedata.normalize(
-                        'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+                    d['kolor'] = DataCleaning.normalize(li.findChildren('div')[0].text)
 
             elif 'liczba drzwi' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['liczba drzwi'] = unicodedata.normalize(
-                            'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+                    d['liczba drzwi'] = DataCleaning.normalize(li.findChildren('div')[0].text)
 
             elif 'moc' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
                     try:
-                        decVal = DataCleaning.stripDecimalValue(\
-                            (unicodedata.normalize(
-                                'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()))
+                        decVal = DataCleaning.stripDecimalValue(DataCleaning.normalize(li.findChildren('div')[0].text))
                         d['moc'] = int(decVal)
                     except:
                         moduleLogger.debug(
@@ -238,15 +228,12 @@ class URLOperations(object):
 
             elif 'stan' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['stan'] = unicodedata.normalize(
-                        'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+                    d['stan'] = DataCleaning.normalize(li.findChildren('div')[0].text)
 
             elif re.match("pojemno.. skokowa", span[0].text.lower()):
                 if li.findChildren('div')[0].text.strip() is not None:
                     try:
-                        decVal = DataCleaning.stripDecimalValue( \
-                            (unicodedata.normalize(
-                                'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii', 'ignore').lower()))
+                        decVal = DataCleaning.stripDecimalValue(DataCleaning.normalize(li.findChildren('div')[0].text))
                         d['pojemnosc skokowa'] = int(decVal)
                     except:
                         moduleLogger.debug(
@@ -255,8 +242,7 @@ class URLOperations(object):
 
             elif re.match("skrzynia bieg.w", span[0].text.lower()):
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['skrzynia biegow'] = unicodedata.normalize(
-                        'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
+                    d['skrzynia biegow'] = DataCleaning.normalize(li.findChildren('div')[0].text)
 
         if d:
             price = URLOperations.getOtomotoPrice(url)
