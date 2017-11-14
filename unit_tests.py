@@ -1,3 +1,6 @@
+# -*- coding: utf8 -*-
+
+from OperationUtils.data_operations import DataCleaning
 from OperationUtils.url_operations import _openLinkAndReturnSoup, URLOperations
 import OperationUtils.url_operations
 import unittest
@@ -118,7 +121,69 @@ class CategoriesUrlParsing(unittest.TestCase):
         parsedDict = URLOperations.getAllBrands(None)
         self.assertEqual({}, parsedDict)
 
+class DataCleaningStripDecimalValue(unittest.TestCase):
+    def test_strips_power(self):
+        toStrip = "1 598 cm3"
+        self.assertEqual(DataCleaning.stripDecimalValue(toStrip), '1598')
 
+    def test_strips_price(self):
+        toStrip = "39 600,00 zl"
+        self.assertEqual(float(DataCleaning.stripDecimalValue(toStrip)), 39600.0)
+
+    def test_strips_mileage(self):
+        toStrip = "48 000 km"
+        self.assertEqual(DataCleaning.stripDecimalValue(toStrip), "48000")
+
+    def test_strips_number_of_doors(self):
+        toStrip = "2/3"
+        self.assertEqual(DataCleaning.stripDecimalValue(toStrip), "2/3")
+
+    def test_strips_number_of_doors(self):
+        toStrip = "4/5"
+        self.assertEqual(DataCleaning.stripDecimalValue(toStrip), "4/5")
+
+    def test_strips_simple_integer(self):
+        toStrip = "123"
+        self.assertEqual(DataCleaning.stripDecimalValue(toStrip), "123")
+
+    def test_strips_simple_float(self):
+        toStrip = "21.1"
+        self.assertEqual(DataCleaning.stripDecimalValue(toStrip), "21.1")
+
+    def test_strips_simple_literal(self):
+        toStrip = "AAAaaa"
+        self.assertEqual(DataCleaning.stripDecimalValue(toStrip), "")
+
+class DataCleaningNormalize(unittest.TestCase):
+    def test_normalizes_year(self):
+        toNormalize = u"\n    2016         \n"
+        self.assertEqual(DataCleaning.normalize(toNormalize), "2016")
+
+    def test_normalizes_color(self):
+        toNormalize = u"\n    Biały        \n"
+        self.assertEqual(DataCleaning.normalize(toNormalize), "biay")
+
+
+    def test_normalizes_color2(self):
+        toNormalize = u"\n    Złoty        \n"
+        self.assertEqual(DataCleaning.normalize(toNormalize), "zloty")
+
+    def test_normalizes_color3(self):
+        toNormalize = u"\n    Żółty        \n"
+        self.assertEqual(DataCleaning.normalize(toNormalize), "zolty")
+
+
+    def test_normalizes_state(self):
+        toNormalize = u"\n    Używany        \n"
+        self.assertEqual(DataCleaning.normalize(toNormalize), "uzywany")
+
+    def test_normalizes_power(self):
+        toNormalize = u"200KM"
+        self.assertEqual(DataCleaning.normalize(toNormalize), "200km")
+
+    def test_normalizes_capacity(self):
+        toNormalize = u"1400cm3"
+        self.assertEqual(DataCleaning.normalize(toNormalize), "1400cm3")
 
 
 if __name__ == "__main__":

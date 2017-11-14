@@ -51,8 +51,7 @@ class URLOperations(object):
         soup = _openLinkAndReturnSoup(url)
 
         try:
-            price = int(float(soup.findAll("div", { "class" : "price" })[0]['data-price']))
-
+            price = int(float(DataCleaning.stripDecimalValue(soup.findAll("div", { "class" : "price" })[0]['data-price'])))
             return price
         except:
             methodName = inspect.stack()[0][3]
@@ -222,9 +221,8 @@ class URLOperations(object):
 
             elif 'liczba drzwi' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:
-                    d['liczba drzwi'] = DataCleaning.stripDecimalValue(
-                        unicodedata.normalize(
-                            'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower())
+                    d['liczba drzwi'] = unicodedata.normalize(
+                            'NFKD', li.findChildren('div')[0].text.strip()).encode('ascii','ignore').lower()
 
             elif 'moc' in span[0].text.lower():
                 if li.findChildren('div')[0].text.strip() is not None:

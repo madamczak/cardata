@@ -1,6 +1,9 @@
+# -*- coding: utf8 -*-
+
 import re
 from OperationUtils.logger import Logger
 import inspect
+import unicodedata
 
 moduleLogger = Logger.setLogger("dataOps")
 
@@ -8,22 +11,30 @@ moduleLogger = Logger.setLogger("dataOps")
 class DataCleaning(object):
     @staticmethod
     def stripDecimalValue(dval):
-        dval = dval.replace(" ", "")
-        decimal = re.match("\d+", dval)
-        if decimal is None:
-            return dval
-        else:
-            return decimal.group()
+        dval = dval.replace("cm3", "")
+
+        catchDoors = re.match("\d/\d", dval)
+        if catchDoors:
+            return catchDoors.group()
+
+        stripped = ""
+        for char in dval:
+            if char.isdigit():
+                stripped += char
+            elif char == "." or char == ",":
+                stripped += "."
+
+        return stripped
 
     @staticmethod
-    def convertToNumeric(strippedValue):
-        methodName = inspect.stack()[0][3]
-        if strippedValue.isdigit():
-            return int(strippedValue)
+    def normalize(unicodeValue):
+        unicodeValue = unicodeValue.strip().lower()
+        if unicodeValue == u"żółty":
+            return "zolty"
+        elif unicodeValue == u"złoty":
+            return "zloty"
         else:
-            moduleLogger.error("%s - Unable to strip value %s" % (methodName, strippedValue))
-            return -9999
-
+            return unicodedata.normalize('NFKD', unicodeValue.strip()).encode('ascii', 'ignore').lower()
 
 class DataOperations(object):
     @staticmethod
