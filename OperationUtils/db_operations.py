@@ -7,6 +7,7 @@ moduleLogger = Logger.setLogger("dbops")
 
 class DataBase(object):
     def __init__(self, databaseName):
+        self.dbName = databaseName
         self.conn = sqlite3.connect(databaseName)
         self.c = self.conn.cursor()
         moduleLogger.info("Connection to db: '%s' is set up." % databaseName)
@@ -38,15 +39,18 @@ class DataBase(object):
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
     def readAllDataGenerator(self, tableName, amount=1000):
+        conn = sqlite3.connect(self.dbName)
+        cursor = self.conn.cursor()
+
         methodName = inspect.stack()[0][3]
         command = "SELECT * FROM %s" % tableName
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
-        self.c.execute(command)
+        cursor.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
         counter = 0
         while True:
-            rows = self.c.fetchmany(amount)
+            rows = cursor.fetchmany(amount)
             if not rows:
                 moduleLogger.debug(
                     "%s - End of rows returned from command: %s. There was around %d records in %s table." %
@@ -105,10 +109,11 @@ class DataBase(object):
         output = self.c.fetchall()
 
         if output:
-            moduleLogger.debug("%s - Number of items returned: %d." % len(output))
+            moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(output)))
             return output
         else:
-            raise Exception('There are no cars with B_Id %s'  % brandId)
+            moduleLogger.debug('%s - There are no cars with B_Id %s'  % (methodName,brandId))
+            return []
 
     def getAllBrandIdsOfBrand(self, brandName):
         return self._getAllIds('brandName', brandName)
@@ -128,9 +133,12 @@ class DataBase(object):
         if output:
             items = [element[0] for element in output]
             moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(items)))
-            return items
+            return items[0]
         else:
             raise Exception('There is no version "%s" of model called "%s"'  % (version, modelName))
+
+
+    #TODO: Use GENERATOR for method below
 
     def getAllCars(self):
         methodName = inspect.stack()[0][3]
@@ -174,7 +182,7 @@ class DataBase(object):
     def getAllCarsOfVersion(self, modelName, versionName):
         methodName = inspect.stack()[0][3]
 
-        cars = self._getCarsById(self.getVersionID(modelName, versionName)[0])
+        cars = self._getCarsById(self.getVersionID(modelName, versionName))
         moduleLogger.debug("%s - Number of cars returned: %d which have a model  and version name: %s - %s." %
                             (methodName, len(cars), modelName, versionName))
         return cars
@@ -191,7 +199,6 @@ class DataBase(object):
             moduleLogger.debug("%s - Value: %s is present in table: %s." % (methodName, value, table))
         else:
             moduleLogger.debug("%s - Value: %s is NOT present in table: %s." % (methodName, value, table))
-
 
         return valueIsPresentInDb
 
@@ -210,3 +217,18 @@ class DataBase(object):
             return int(output[0])
         else:
             return 0
+
+    def tableExists(self, table):
+        methodName = inspect.stack()[0][3]
+
+        command = """SELECT name FROM sqlite_master WHERE type = "table" AND name = "%s" """ % table
+        self.c.execute(command)
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
+        columnExists = self.c.fetchall() != []
+
+        if columnExists:
+            moduleLogger.debug("%s - Table %s exists" % (methodName, table))
+        else:
+            moduleLogger.debug("%s - Table %s does not exists" % (methodName, table))
+
+        return columnExists

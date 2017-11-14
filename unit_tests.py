@@ -1,11 +1,14 @@
 # -*- coding: utf8 -*-
+from collections import OrderedDict
 
 from OperationUtils.data_operations import DataCleaning
+from OperationUtils.db_operations import DataBase
 from OperationUtils.url_operations import _openLinkAndReturnSoup, URLOperations
 import OperationUtils.url_operations
 import unittest
 from mock import patch
 from bs4 import BeautifulSoup
+import os
 
 
 emptySoup = BeautifulSoup("", "lxml")
@@ -13,6 +16,7 @@ allegroSoup = BeautifulSoup(open("UnitTests/allegroSiteBMW7.html").read(), "lxml
 otomotoSoup = BeautifulSoup(open("UnitTests/otomotoSiteType2BMW7.html").read(), "lxml")
 rootCategorySoup = BeautifulSoup(open("UnitTests/rootCategorySite.html").read(), "lxml")
 acuraCategorySoup = BeautifulSoup(open("UnitTests/acuraCategorySite.html").read(), "lxml")
+testDB = DataBase("UnitTests/test.db")
 
 
 class AllegroUrlParsing(unittest.TestCase):
@@ -184,6 +188,122 @@ class DataCleaningNormalize(unittest.TestCase):
     def test_normalizes_capacity(self):
         toNormalize = u"1400cm3"
         self.assertEqual(DataCleaning.normalize(toNormalize), "1400cm3")
+
+class DataBaseOpsCreation(unittest.TestCase):
+    def setUp(self):
+        self.newDb = DataBase("UnitTests/test2.db")
+
+    def test_db_new_file_created(self):
+        self.assertTrue(os.path.exists("UnitTests/test2.db"))
+
+    def test_db_new_table(self):
+        newDict = OrderedDict([('ID', "INT"), ('name', "TEXT")])
+        self.assertFalse(self.newDb.tableExists("NewTable"))
+        self.newDb.createTable("NewTable", newDict)
+        self.assertTrue(self.newDb.tableExists("NewTable"))
+
+    def tearDown(self):
+        del(self.newDb)
+        self.addCleanup(os.remove, "UnitTests/test2.db")
+
+class DataBaseOpsUsage(unittest.TestCase):
+    def test_db_read_all_data_by_generator(self):
+        allLinks = []
+
+        for lnk in testDB.readAllDataGenerator("Links", 5):
+            allLinks.append(lnk)
+
+        self.assertEquals(len(allLinks), 15)
+
+    def test_db_read_all_data_by_generator_with_interruption(self):
+        allLinks = []
+
+        for lnk in testDB.readAllDataGenerator("Links", 5):
+            allLinks.append(lnk)
+            testDB.tableExists("Links")
+
+        self.assertEquals(len(allLinks), 15)
+
+    def test_db_read_all_data(self):
+        allLinks = []
+
+        for lnk in testDB.readAllData("Links"):
+            allLinks.append(lnk)
+
+        self.assertEquals(len(allLinks), 15)
+
+    def test_db_execute_custom_command(self):
+        self.assertFalse(testDB.valueIsPresentInColumnOfATable('False', "parsed", "Links"))
+        testDB.executeSqlCommand("""UPDATE Links SET parsed = "False" """)
+        self.assertFalse(testDB.valueIsPresentInColumnOfATable('True', "parsed", "Links"))
+        testDB.executeSqlCommand("""UPDATE Links SET parsed = "True" """)
+        self.assertFalse(testDB.valueIsPresentInColumnOfATable('False', "parsed", "Links"))
+
+    def test_db_get_all_ids_of_particular_brand(self):
+        ids = testDB.getAllBrandIdsOfBrand("Honda")
+        self.assertEquals(len(ids), 5)
+        self.assertTrue(25 in ids)
+        self.assertTrue(27 in ids)
+        self.assertTrue(45 in ids)
+        self.assertTrue(46 in ids)
+        self.assertTrue(47 in ids)
+
+
+    def test_db_get_all_ids_of_particular_model(self):
+        ids = testDB.getAllBrandIdsOfModel("Accord")
+        self.assertEquals(len(ids), 2)
+        self.assertTrue(25 in ids)
+        self.assertTrue(27 in ids)
+
+    def test_db_get_id_of_version(self):
+        iD = testDB.getVersionID("Accord", "V (1993-1998)")
+        self.assertEquals(iD, 25)
+
+    def test_db_get_all_cars(self):
+        allCars = []
+
+        for lnk in testDB.getAllCars():
+            allCars.append(lnk)
+
+        self.assertEquals(len(allCars), 14)
+
+    def test_db_get_all_cars_of_brand(self):
+        allCars = []
+
+        for lnk in testDB.getAllCarsOfBrand("Honda"):
+            allCars.append(lnk)
+
+        self.assertEquals(len(allCars), 14)
+
+    def test_db_get_all_cars_of_model(self):
+        allCars = []
+
+        for lnk in testDB.getAllCarsOfModel("Civic"):
+            allCars.append(lnk)
+
+        self.assertEquals(len(allCars), 7)
+
+    def test_db_get_all_cars_of_version(self):
+        allCars = []
+
+        for lnk in testDB.getAllCarsOfVersion("Civic", "VII (2001-2006)"):
+            allCars.append(lnk)
+
+        self.assertEquals(len(allCars), 3)
+
+    def test_db_get_all_cars_of_model(self):
+        allCars = []
+
+        for lnk in testDB.getAllCarsOfVersion("Civic", "VII (2001-2006)"):
+            allCars.append(lnk)
+
+        self.assertEquals(len(allCars), 3)
+
+    def test_db_get_count_of_records(self):
+        self.assertEquals(testDB.countRecordsInTable("Links"), 15)
+
+    def test_db_get_max_value(self):
+        self.assertEquals(testDB.getMaxFromColumnInTable("L_ID", "Links"), 246)
 
 
 if __name__ == "__main__":
