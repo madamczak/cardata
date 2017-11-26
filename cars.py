@@ -73,7 +73,8 @@ def constructLinkTable(db):
     moduleLogger.debug("%s - Current number of links: %d." % (methodName, counter - 1))
     categories = db.readAllDataGenerator('Brands')
     for cat in categories:
-        moduleLogger.debug("%s - Working on category link: %s." % (methodName, cat[4]))
+        #moduleLogger.info("%s - Currently getting links from category with B_id: %d ." % (methodName, cat[0]))
+        moduleLogger.info("%s - Working on category with id: %s, link: %s." % (methodName, cat[0], cat[4]))
 
         links = [str(link) for link in URLOperations.getLinksFromCategorySite(cat[4])
                  if not db.valueIsPresentInColumnOfATable(str(link), 'link', "Links")]
@@ -85,7 +86,10 @@ def constructLinkTable(db):
             counter += 1
             newLinks += 1
 
-    moduleLogger.debug("%s - Number of new links: %d." % (methodName, newLinks))
+        if links:
+            moduleLogger.info("%s - Number of new links: %d." % (methodName, len(links)))
+        else:
+            moduleLogger.info("%s - There weren't any new links in category with B_id: %d" % (methodName, cat[0]))
     return newLinks
 
 
@@ -187,7 +191,7 @@ def ConstructCarsTable(db):
 
     newCars = 0
 
-    for entry in db.readAllDataGenerator('Links'):
+    for entry in db.readAllDataGenerator('Links', where='WHERE parsed = "False"'):
         if entry[4] == 'False':
             moduleLogger.debug("%s - Link has not been parsed. Link: %s" % (methodName, entry[3]))
 

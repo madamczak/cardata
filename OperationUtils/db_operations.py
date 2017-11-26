@@ -38,12 +38,12 @@ class DataBase(object):
         self.conn.commit()
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
-    def readAllDataGenerator(self, tableName, amount=1000):
+    def readAllDataGenerator(self, tableName, amount=1000, where=""):
         conn = sqlite3.connect(self.dbName)
         cursor = self.conn.cursor()
 
         methodName = inspect.stack()[0][3]
-        command = "SELECT * FROM %s" % tableName
+        command = "SELECT * FROM %s %s" % (tableName, where)
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         cursor.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
@@ -55,6 +55,7 @@ class DataBase(object):
                 moduleLogger.debug(
                     "%s - End of rows returned from command: %s. There was around %d records in %s table." %
                                    (methodName, command, counter * amount, tableName))
+                conn.close()
                 break
             moduleLogger.debug("%s - Fetching another %d rows." % (methodName, amount))
             counter += 1

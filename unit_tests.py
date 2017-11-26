@@ -224,6 +224,26 @@ class DataBaseOpsUsage(unittest.TestCase):
 
         self.assertEquals(len(allLinks), 15)
 
+    def test_db_read_all_unparsed_links(self):
+        allLinks = []
+
+        for lnk in testDB.readAllDataGenerator("Links", where='WHERE parsed = "False"'):
+            allLinks.append(lnk)
+
+        self.assertEquals(len(allLinks), 0)
+        testDB.executeSqlCommand("""UPDATE Links SET parsed = "False" """)
+        self.assertFalse(testDB.valueIsPresentInColumnOfATable('True', "parsed", "Links"))
+
+        allLinks = []
+
+        for lnk in testDB.readAllDataGenerator("Links", where='WHERE parsed = "False"'):
+            allLinks.append(lnk)
+
+        self.assertEquals(len(allLinks), 15)
+        testDB.executeSqlCommand("""UPDATE Links SET parsed = "True" """)
+        self.assertFalse(testDB.valueIsPresentInColumnOfATable('False', "parsed", "Links"))
+
+
     def test_db_read_all_data(self):
         allLinks = []
 
