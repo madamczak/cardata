@@ -11,6 +11,7 @@ import inspect
 from OperationUtils.logger import Logger
 moduleLogger = Logger.setLogger("cars.py")
 
+
 def ConstructBrandsTable(db):
     methodName = inspect.stack()[0][3]
 
@@ -64,15 +65,21 @@ def ConstructBrandsTable(db):
     return newBrands
 
 
-def constructLinkTable(db):
+def constructLinkTable(db, limit=20000):
     methodName = inspect.stack()[0][3]
 
     newLinks = 0
     counter = db.getMaxFromColumnInTable("L_id", "Links") + 1
 
     moduleLogger.debug("%s - Current number of links: %d." % (methodName, counter - 1))
+
     categories = db.readAllDataGenerator('Brands')
+
     for cat in categories:
+        if newLinks > limit:
+            moduleLogger.info("%s - Collected %d links." % (methodName, limit))
+            break
+
         #moduleLogger.info("%s - Currently getting links from category with B_id: %d ." % (methodName, cat[0]))
         moduleLogger.info("%s - Working on category with id: %s, link: %s." % (methodName, cat[0], cat[4]))
 
@@ -85,6 +92,7 @@ def constructLinkTable(db):
             db.insertStringData("Links", s)
             counter += 1
             newLinks += 1
+
 
         if links:
             moduleLogger.info("%s - Number of new links: %d." % (methodName, len(links)))
@@ -106,40 +114,49 @@ def _checkString(textValue):
     else:
         return '"%s",' % DataCleaning.normalize(textValue)
 
+def _getAllegroDictRegexKey(text, carDict):
+    regex = re.compile("%s .+:" % text)
+
+    for key in carDict.keys():
+        if text in key:
+            value = _checkDigit(carDict.get(re.match(regex, key).group(), 0))
+            return value
+
 
 def constructAllegroCarInsert(b_id, l_id, carDict):
     methodName = inspect.stack()[0][3]
 
     s = """"""
-    s+= '%d,' % int(b_id)
-    s+= '%d,' % int(l_id)
-    s += _checkDigit(carDict.get('rok produkcji:', 0))#
-    s += _checkDigit(carDict.get('przebieg [km]:', 0))#
+    s += '%d,' % int(b_id)
+    s += '%d,' % int(l_id)
+    s += _checkDigit(carDict.get('rok produkcji:', 0))
+
+    s += _getAllegroDictRegexKey("przebieg", carDict)
 
     #TODO: use regex here
-    if (carDict.get('moc [KM]:', 0) == 0):
-        s += _checkDigit(carDict.get('moc [km]:', 0))  #
-    else:
-        s += _checkDigit(carDict.get('moc [KM]:', 0))  #
+    s += _getAllegroDictRegexKey("moc", carDict)
 
-    s += _checkDigit(carDict.get('pojemnosc silnika [cm3]:', 0))#
+    #s += _checkDigit(carDict.get('pojemnosc silnika [cm3]:', 0))
 
-    s+= '"%s",' % str(carDict.get('rodzaj paliwa:', ""))#
-    s += _checkString(carDict.get('kolor:', u""))#
-    s+= '"%s",' % carDict.get('stan:', "")#
-    s+= '"%s",' % str(carDict.get('liczba drzwi:', ""))#
+    s += _getAllegroDictRegexKey("pojemnosc silnika", carDict)
+    s += '"%s",' % DataCleaning.internationalizeFuel(str(carDict.get('rodzaj paliwa:', "")))
+    s += '"%s",' % DataCleaning.internationalizeColor(_checkString(carDict.get('kolor:', u"")))
+    s += '"%s",' % DataCleaning.internationalizeState(carDict.get('stan:', ""))
+    s += '"%s",' % DataCleaning.normalizeNumberOfDoors(str(carDict.get('liczba drzwi:', "")))
 
     gearboxValue = carDict.get('skrzynia biegow:', u"")#
     if type(gearboxValue) == str:
-        s+= '"%s",' % gearboxValue
+        s += '"%s",' % DataCleaning.internationalizeGearbox(gearboxValue)
     else:
-        s+= '"%s",' % DataCleaning.normalize(gearboxValue)
+        s += '"%s",' % DataCleaning.internationalizeGearbox(DataCleaning.normalize(gearboxValue))
 
     try:
 
-        s += '"%d"' % int(carDict.get('cena', 0))
+        s += '"%d",' % int(carDict.get('cena', 0))
     except:
-        s += "0"
+        s += "0,"
+
+    s += '"%s"' % str(datetime.datetime.now())
 
     moduleLogger.debug("%s - %s " % (methodName, s))
 
@@ -150,48 +167,104 @@ def constructOtomotoCarInsert(b_id, l_id, carDict):
     methodName = inspect.stack()[0][3]
 
     s = """"""
-    s+= '%d,' % int(b_id)
-    s+= '%d,' % int(l_id)
-    s+= '%d,' % carDict.get('rok produkcji', 0)
-    s+= '%d,' % carDict.get('przebieg', 0)
-    s+= '%d,' % carDict.get('moc', 0)
-    s+= '%d,' % carDict.get('pojemnosc skokowa', 0)
-    s+= '"%s",' % str(carDict.get('rodzaj paliwa', ""))
-    s+= '"%s",' % carDict.get('kolor', "")
-    s+= '"%s",' % carDict.get('stan', "")
-    s+= '"%s",' % str(carDict.get('liczba drzwi', ""))
-    s+= '"%s",' % str(carDict.get('skrzynia biegow', ""))
+    s += '%d,' % int(b_id)
+    s += '%d,' % int(l_id)
+    s += '%d,' % carDict.get('rok produkcji', 0)
+    s += '%d,' % carDict.get('przebieg', 0)
+    s += '%d,' % carDict.get('moc', 0)
+    s += '%d,' % carDict.get('pojemnosc skokowa', 0)
+    s += '"%s",' % DataCleaning.internationalizeFuel(str(carDict.get('rodzaj paliwa', "")))
+    s += '"%s",' % DataCleaning.internationalizeColor(carDict.get('kolor', ""))
+    s += '"%s",' % DataCleaning.internationalizeState(carDict.get('stan', ""))
+    s += '"%s",' % DataCleaning.normalizeNumberOfDoors(str(carDict.get('liczba drzwi', "")))
+    s += '"%s",' % DataCleaning.internationalizeGearbox(str(carDict.get('skrzynia biegow', "")))
     try:
 
-        s += '"%d"' % int(carDict.get('cena', 0))
+        s += '"%d",' % int(carDict.get('cena', 0))
     except:
-        s += "0"
+        s += "0,"
+
+    s += '"%s"' % str(datetime.datetime.now())
 
     moduleLogger.debug("%s - %s" % (methodName, s))
 
     return s
 
-
-def _scoreFour(carDict):
-    score = 0
-
-    for val in carDict.values():
-        if val == 0 or val == "":
-            score += 1
-
-    return score < 5
-
-
+#TODO refactor
 def _verifyDictionary(carDict):
-    return (carDict and _scoreFour(carDict))
+    #verify keys
+    if carDict and len(carDict.keys()) < 15:
+        if carDict.get('cena') is not None and carDict.get('cena') == 0:
+            return False
+
+        if ":" not in carDict.keys()[0]:
+            if carDict.get('rok produkcji') is not None and carDict.get('rok produkcji') == 0:
+                return False
+            if carDict.get('przebieg') is not None:
+                if carDict.get('przebieg') == 0:
+                    return False
+            else:
+                return False
+            if carDict.get('moc') is not None:
+                if carDict.get('moc') == 0:
+                    return False
+            else:
+                return False
+            if carDict.get('pojemnosc skokowa') is not None:
+                if carDict.get('pojemnosc skokowa') == 0:
+                    return False
+            else:
+                return False
+        else:
+            if carDict.get('rok produkcji:') is not None:
+                if carDict.get('rok produkcji:') == 0:
+                    return False
+            else:
+                return False
+
+            if carDict.get(_getAllegroDictRegexKey("przebieg", carDict)) is not None:
+                if carDict.get(_getAllegroDictRegexKey("przebieg", carDict)) == 0:
+                    return False
+            else:
+                return False
+
+            if carDict.get(_getAllegroDictRegexKey("moc [km]:", carDict)) is not None:
+                if carDict.get(_getAllegroDictRegexKey("moc", carDict)) == 0:
+                    return False
+            else:
+                return False
+
+            if carDict.get(_getAllegroDictRegexKey("pojemnosc silnika", carDict)) is not None:
+                if carDict.get(_getAllegroDictRegexKey("pojemnosc silnika", carDict)) == 0:
+                    return False
+            else:
+                return False
 
 
-def ConstructCarsTable(db):
+        return True
+
+    else:
+        return False
+
+
+def ConstructCarsTable(db, limit=40000):
     methodName = inspect.stack()[0][3]
 
     newCars = 0
+    currentB_id = ""
 
+    counter = 0
     for entry in db.readAllDataGenerator('Links', where='WHERE parsed = "False"'):
+        if counter > limit:
+            moduleLogger.info("%s - Collected %d cars." % (methodName, limit))
+            break
+        counter += 1
+
+        if currentB_id != entry[1]:
+            currentB_id = entry[1]
+            moduleLogger.info("%s - Currently working on links from %s B_id. It has %s L_id" %
+                              (methodName, entry[1], entry[0]))
+
         if entry[4] == 'False':
             moduleLogger.debug("%s - Link has not been parsed. Link: %s" % (methodName, entry[3]))
 
@@ -225,6 +298,7 @@ def ConstructCarsTable(db):
                     db.insertStringData("InvalidLinks", s)
 
             db.executeSqlCommand("""UPDATE Links SET parsed = "True" WHERE link = "%s" """ % entry[3])
+        #else is obsolete for now as we are parsing only links with "False" parsed entry
         else:
             moduleLogger.debug("%s - Link has been already parsed. Link: %s" % (methodName, entry[3]))
 
@@ -240,7 +314,7 @@ def constructDBTables(db):
     InvalidLinksDict = OrderedDict([('L_Id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')])
     carDataDict = OrderedDict([('B_Id', "INT"), ('L_Id', "INT"), ('year', "INT"), ('mileage', "INT"), ('power', "INT"),
                                ('capacity', "INT"), ('fuel', "TEXT"), ('color', "TEXT"), ('usedOrNew', "TEXT"),
-                               ('doors', "TEXT"), ('gearbox', "TEXT"), ('price', "INT")])
+                               ('doors', "TEXT"), ('gearbox', "TEXT"), ('price', "INT"), ('time', "TEXT")])
     db.createTable('Brands', brandsDict)
     db.createTable('Links', linksDict)
     db.createTable('CarData', carDataDict)
@@ -258,8 +332,8 @@ def collect(nameOfDb):
     while True:
         beginBrands = time.time()
         currentDate = datetime.datetime.now()
-        newBrands = ConstructBrandsTable(db)
-        #newBrands = 0
+        #newBrands = ConstructBrandsTable(db)
+        newBrands = 0
         moduleLogger.info("%s - Brands done. %s. Number of new brands: %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newBrands, time.time() - beginBrands))
 
@@ -282,4 +356,5 @@ def collect(nameOfDb):
 
 
 if __name__ == "__main__":
-    collect("refactor_test3.db")
+    collect("refactor_test6.db")
+

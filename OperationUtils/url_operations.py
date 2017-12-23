@@ -33,6 +33,8 @@ class URLOperations(object):
                     'https://allegro.pl/praca',
                     'https://allegro.pl/mapa-strony',
                     'https://allegro.pl/',
+                    'https://allegro.pl/strefamarek',
+                    'https://allegro.pl/inspiracje',
                     'https://allegro.pl/strefaokazji',
                     'https://allegro.pl/strefamarek?ref=navbar',
                     'https://allegro.pl/artykuly?ref=navbar',

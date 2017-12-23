@@ -189,6 +189,196 @@ class DataCleaningNormalize(unittest.TestCase):
         toNormalize = u"1400cm3"
         self.assertEqual(DataCleaning.normalize(toNormalize), "1400cm3")
 
+    def test_normalize_number_of_doors(self):
+        self.assertEqual(DataCleaning.normalizeNumberOfDoors("2"), "2/3")
+        self.assertEqual(DataCleaning.normalizeNumberOfDoors("3"), "2/3")
+        self.assertEqual(DataCleaning.normalizeNumberOfDoors("2/3"), "2/3")
+
+        self.assertEqual(DataCleaning.normalizeNumberOfDoors("4"), "4/5")
+        self.assertEqual(DataCleaning.normalizeNumberOfDoors("5"), "4/5")
+        self.assertEqual(DataCleaning.normalizeNumberOfDoors("4/5"), "4/5")
+
+        self.assertEqual(DataCleaning.normalizeNumberOfDoors("30"), "unknown")
+
+
+class DataCleaningInternationalize(unittest.TestCase):
+#FUEL
+    def test_internationalizes_fuel_petrol(self):
+        toInternationalize = "benzyna"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "petrol")
+
+    def test_internationalizes_fuel_petrol_lpg(self):
+        toInternationalize = "benzyna + lpg"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "petrol + lpg")
+
+    def test_internationalizes_fuel_petrol_lpg2(self):
+        toInternationalize = "benzyna+lpg"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "petrol + lpg")
+
+    def test_internationalizes_fuel_petrol_cng(self):
+        toInternationalize = "benzyna + cng"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "petrol + cng")
+
+    def test_internationalizes_fuel_petrol_cng2(self):
+        toInternationalize = "benzyna+cng"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "petrol + cng")
+
+    def test_internationalizes_fuel_electric(self):
+        toInternationalize = "elektryczny"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "electric")
+
+    def test_internationalizes_fuel_hydrogen(self):
+        toInternationalize = "wodor"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "hydrogen")
+
+    def test_internationalizes_fuel_ethanol(self):
+        toInternationalize = "etanol"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "ethanol")
+
+    def test_internationalizes_fuel_other(self):
+        toInternationalize = "inny"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "other")
+
+    def test_internationalizes_fuel_hybrid(self):
+        toInternationalize = "hybryda"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "hybrid")
+
+    def test_internationalizes_fuel_unknown(self):
+        toInternationalize = "aaabbb"
+        self.assertEqual(DataCleaning.internationalizeFuel(toInternationalize), "unknown")
+#COLOR
+    def test_internationalizes_color_white(self):
+        toInternationalize = "biay"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "white")
+
+    def test_internationalizes_color_white2(self):
+        toInternationalize = "biel"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "white")
+
+    def test_internationalizes_color_black(self):
+        toInternationalize = "czarny"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "black")
+
+    def test_internationalizes_color_black2(self):
+        toInternationalize = "czern"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "black")
+
+    def test_internationalizes_color_green(self):
+        toInternationalize = "zielony"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "green")
+
+    def test_internationalizes_color_maroon(self):
+        toInternationalize = "bordowy"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "maroon")
+
+    def test_internationalizes_color_silver(self):
+        toInternationalize = "srebrny"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "silver")
+
+    def test_internationalizes_color_gray(self):
+        toInternationalize = "szary"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "gray")
+
+    def test_internationalizes_color_red(self):
+        toInternationalize = "czerwony"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "red")
+
+    def test_internationalizes_color_other(self):
+        toInternationalize = "inny kolor"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "other")
+
+    def test_internationalizes_color_other2(self):
+        toInternationalize = "inny"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "other")
+
+    def test_internationalizes_color_gold(self):
+        toInternationalize = "zloty"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "gold")
+
+    def test_internationalizes_color_brown(self):
+        toInternationalize = "brazowy"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "brown")
+
+    def test_internationalizes_color_beige(self):
+        toInternationalize = "bezowy"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "beige")
+
+    def test_internationalizes_color_violet(self):
+        toInternationalize = "fioletowy"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "violet")
+
+    def test_internationalizes_color_yellow(self):
+        toInternationalize = "zolty"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "yellow")
+
+    def test_internationalizes_color_orange(self):
+        toInternationalize = "pomaranczowy"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "orange")
+
+    def test_internationalizes_color_blue(self):
+        toInternationalize = "niebieski"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "blue")
+
+    def test_internationalizes_color_blue(self):
+        toInternationalize = "niebieski"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "blue")
+
+    def test_internationalizes_color_unknown(self):
+        toInternationalize = "aaabbb"
+        self.assertEqual(DataCleaning.internationalizeColor(toInternationalize), "unknown")
+
+#STATE
+    def test_internationalizes_state_new(self):
+        toInternationalize = "nowy"
+        self.assertEqual(DataCleaning.internationalizeState(toInternationalize), "new")
+
+    def test_internationalizes_state_used(self):
+        toInternationalize = "uzywany"
+        self.assertEqual(DataCleaning.internationalizeState(toInternationalize), "used")
+
+    def test_internationalizes_state_unknown(self):
+        toInternationalize = "aaabbb"
+        self.assertEqual(DataCleaning.internationalizeState(toInternationalize), "unknown")
+
+#GEARBOX
+    def test_internationalizes_gearbox_manual(self):
+        toInternationalize = "manualna"
+        self.assertEqual(DataCleaning.internationalizeGearbox(toInternationalize), "manual")
+
+    def test_internationalizes_gearbox_half_automatic(self):
+        toInternationalize = "poautomatyczna (asg)"
+        self.assertEqual(DataCleaning.internationalizeGearbox(toInternationalize), "half-automatic")
+
+    def test_internationalizes_gearbox_half_automatic2(self):
+        toInternationalize = "poautomatyczna (asg, tiptronic)"
+        self.assertEqual(DataCleaning.internationalizeGearbox(toInternationalize), "half-automatic")
+
+    def test_internationalizes_gearbox_automatic(self):
+        toInternationalize = "automatyczna"
+        self.assertEqual(DataCleaning.internationalizeGearbox(toInternationalize), "automatic")
+
+    def test_internationalizes_gearbox_automatic2(self):
+        toInternationalize = "automatyczna hydrauliczna (klasyczna)"
+        self.assertEqual(DataCleaning.internationalizeGearbox(toInternationalize), "automatic")
+
+    def test_internationalizes_gearbox_dsg(self):
+        toInternationalize = "automatyczna dwusprzeglowa (dct, dsg)"
+        self.assertEqual(DataCleaning.internationalizeGearbox(toInternationalize), "automatic - dct, dsg")
+
+    def test_internationalizes_gearbox_cvt(self):
+        toInternationalize = "automatyczna bezstopniowa (cvt)"
+        self.assertEqual(DataCleaning.internationalizeGearbox(toInternationalize), "automatic - cvt")
+
+    def test_internationalizes_gearbox_cvt2(self):
+        toInternationalize = "automatyczna bezstopniowa cvt"
+        self.assertEqual(DataCleaning.internationalizeGearbox(toInternationalize), "automatic - cvt")
+
+    def test_internationalizes_gearbox_unknown(self):
+        toInternationalize = "aaabbb"
+        self.assertEqual(DataCleaning.internationalizeGearbox(toInternationalize), "unknown")
+
+
+
 class DataBaseOpsCreation(unittest.TestCase):
     def setUp(self):
         self.newDb = DataBase("UnitTests/test2.db")
