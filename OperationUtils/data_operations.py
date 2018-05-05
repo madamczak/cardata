@@ -47,6 +47,7 @@ STATEWORDSDICT = {
             'uzywany': 'used'}
 
 GEARBOXWORDSDICT = {
+            'inna': "unknown",
             'manualna': 'manual',
             'automatyczna': 'automatic',
             'automatyczna hydrauliczna (klasyczna)': 'automatic',

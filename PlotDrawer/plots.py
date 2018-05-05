@@ -55,7 +55,27 @@ class Plots(object):
         plt.show()
 
 
-db = DataBase("cars_work_2.db")
-cars = db.getAllCarsOfVersion("Civic", "VII (2001-2006)")
+db = DataBase("refactor_test6.db")
+cars = db.getAllCarsOfModel("Fusion")
+print len(cars)
+yearCarMileageDict = {}
+yearCarPriceDict = {}
+for year in range(2002, 2013):
+    # avg mileage
+    yearCarMileageDict[year] = sum([car[3] for car in cars if car[2] == year])/len([car for car in cars if car[2] == year])
+    #avg price
+    yearCarPriceDict[year] = sum([car[-2] for car in cars if car[2] == year])/len([car for car in cars if car[2] == year])
+#     for car in cars:
+#         if car[2] == year:
+#             yearCarDict[year].append(car)
+#
+# print len(yearCarDict[2003])
 
-Plots.drawCarPoints(cars)
+
+
+plt.plot([car[3] for car in cars if car[3] < 180000 and car[3] > 80000 and car[-2] < 20000],
+         [car[-2] for car in cars if car[3] < 180000 and car[3] > 80000 and car[-2] < 20000], 'ro', )
+plt.xlabel("Year of production")
+plt.ylabel("Mileage")
+plt.title("AAAAAAAAAA")
+plt.show()

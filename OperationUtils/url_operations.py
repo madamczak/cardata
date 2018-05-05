@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 import re
-
+import requests
 import urllib
 from bs4 import BeautifulSoup
 import time
@@ -17,19 +17,27 @@ def is_ascii(s):
 
 def _openLinkAndReturnSoup(url):
     try:
-        r = urllib.urlopen(url).read()
+        agent = {
+            "User-Agent": 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36'}
+        page = requests.get(url, headers=agent)
     except:
         time.sleep(60)
         methodName = inspect.stack()[0][3]
         moduleLogger.info("%s - Problems with parsing %s, sleep 60 seconds." % (methodName, url))
         return None
 
-    return BeautifulSoup(r, "lxml")
+    return BeautifulSoup(page.content, "lxml")
 
 
 class URLOperations(object):
     forbiddenLinks = [
                     'https://allegro.pl/',
+                    'https://allegro.pl/listing?string=',
+                    'https://allegro.pl/newItem',
+                    'https://allegro.pl/moje-konto',
+                    'https://allegro.pl/dla-sprzedajacych',
+                    'https://allegro.pl/artykuly',
+                    'https://allegro.pl/pomoc',
                     'https://allegro.pl/praca',
                     'https://allegro.pl/mapa-strony',
                     'https://allegro.pl/',
@@ -44,7 +52,8 @@ class URLOperations(object):
                     'https://otomoto.pl',
                     "https://allegro.pl/sklep?ref=navbar",
                     "https://allegro.pl/myaccount",
-                    "https://allegro.pl/logout.php?ref=navbar"
+                    "https://allegro.pl/logout.php?ref=navbar",
+                    "https://allegro.pl/listing?string=Spod"
                      ]
 
     @staticmethod
@@ -169,7 +178,6 @@ class URLOperations(object):
         else:
             return toRet
 
-
     @staticmethod
     def parseOtoMotoSite2(url):
         #TODO: Refactor this.
@@ -252,7 +260,7 @@ class URLOperations(object):
 
         return d
 
-
+    #TODO simple integration test
     @staticmethod
     def getAllBrands(topUrl):
         methodName = inspect.stack()[0][3]
@@ -274,6 +282,7 @@ class URLOperations(object):
             moduleLogger.debug("%s - Problems getting brands. There is no top parameter - 'section' tag." % methodName)
             return {}
 
+        #TODO fix magic number 50
         if len(dictionary.values()) > 50 and topUrl != "https://allegro.pl/kategoria/samochody-osobowe-4029":
             return {}
         else:
@@ -316,19 +325,4 @@ class URLOperations(object):
                     if link['href'] not in links:
                         links.append(link['href'])
         moduleLogger.debug("%s - There are %d new links in %s category site url." % (methodName, len(links), url))
-        return links
-
-    @staticmethod
-    def getSubcategories(url):
-        methodName = inspect.stack()[0][3]
-        links = []
-        soup = _openLinkAndReturnSoup(url)
-
-        top = soup.find_all("li", { 'class' : 'sidebar-cat' })
-        for t in top:
-            if len(t.findChildren('a')) > 0:
-                links.append('http://allegro.pl/' + t.findChildren('a')[0]['href'])
-
-        moduleLogger.debug("%s - There are %d new subcategories in %s category site url." %
-                           (methodName, len(links), url))
         return links

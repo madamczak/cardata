@@ -1,4 +1,6 @@
 import sqlite3
+
+from OperationUtils.data_operations import DataCleaning
 from OperationUtils.logger import Logger
 import inspect
 
@@ -38,7 +40,7 @@ class DataBase(object):
         self.conn.commit()
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
-    def readAllDataGenerator(self, tableName, amount=1000, where=""):
+    def readAllDataGenerator(self, tableName, amount=2000, where=""):
         conn = sqlite3.connect(self.dbName)
         cursor = self.conn.cursor()
 
@@ -116,6 +118,39 @@ class DataBase(object):
             moduleLogger.debug('%s - There are no cars with B_Id %s'  % (methodName,brandId))
             return []
 
+    #TODO write unittests
+    def getAllParsedBrandsIds(self):
+        methodName = inspect.stack()[0][3]
+
+        command = """SELECT DISTINCT B_Id FROM CarData"""
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
+        self.c.execute(command)
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
+        output = self.c.fetchall()
+
+        if output:
+            items = [element[0] for element in output]
+            moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(items)))
+            return items
+        else:
+            return []
+
+    # TODO write unittests
+    def getBrandInfo(self, B_Id):
+        methodName = inspect.stack()[0][3]
+
+        command = """SELECT brandName, modelName, version FROM Brands WHERE B_Id = "%s" """ % B_Id
+        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
+        self.c.execute(command)
+        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
+        output = self.c.fetchone()
+        if output:
+            items = [DataCleaning.normalize(element) for element in output if element]
+            moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(items)))
+            return items
+        else:
+            return []
+
     def getAllBrandIdsOfBrand(self, brandName):
         return self._getAllIds('brandName', brandName)
 
@@ -191,8 +226,11 @@ class DataBase(object):
     def valueIsPresentInColumnOfATable(self, value, column, table):
         methodName = inspect.stack()[0][3]
 
-        command = """SELECT * FROM %s WHERE "%s" = "%s" """ % (table, column, value)
-        self.c.execute(command)
+        command = """SELECT 1 FROM %s WHERE "%s" = "%s" """ % (table, column, value)
+        try:
+            self.c.execute(command)
+        except:
+            return True
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
         valueIsPresentInDb = self.c.fetchall() != []
 
@@ -233,3 +271,7 @@ class DataBase(object):
             moduleLogger.debug("%s - Table %s does not exists" % (methodName, table))
 
         return columnExists
+
+
+    def clearParsedLinks(self):
+        self.executeSqlCommand("DELETE FROM Links WHERE parsed='True'")

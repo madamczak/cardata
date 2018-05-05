@@ -65,7 +65,7 @@ def ConstructBrandsTable(db):
     return newBrands
 
 
-def constructLinkTable(db, limit=20000):
+def constructLinkTable(db, limit=200000):
     methodName = inspect.stack()[0][3]
 
     newLinks = 0
@@ -82,9 +82,18 @@ def constructLinkTable(db, limit=20000):
 
         #moduleLogger.info("%s - Currently getting links from category with B_id: %d ." % (methodName, cat[0]))
         moduleLogger.info("%s - Working on category with id: %s, link: %s." % (methodName, cat[0], cat[4]))
+        links = []
+        for link in URLOperations.getLinksFromCategorySite(cat[4]):
+            try:
+                lnk = str(link)
+                if not db.valueIsPresentInColumnOfATable(lnk, 'link', "Links"):
+                    links.append(lnk)
+            except:
+                moduleLogger.info("%s - Unable to add link to list: %s" % (methodName, link))
+                continue
 
-        links = [str(link) for link in URLOperations.getLinksFromCategorySite(cat[4])
-                 if not db.valueIsPresentInColumnOfATable(str(link), 'link', "Links")]
+        # links = [str(link) for link in URLOperations.getLinksFromCategorySite(cat[4])
+        #          if not db.valueIsPresentInColumnOfATable(str(link), 'link', "Links")]
 
         for link in links:
             moduleLogger.debug("%s - Inserting link: %s to Links table." % (methodName, link))
@@ -98,6 +107,7 @@ def constructLinkTable(db, limit=20000):
             moduleLogger.info("%s - Number of new links: %d." % (methodName, len(links)))
         else:
             moduleLogger.info("%s - There weren't any new links in category with B_id: %d" % (methodName, cat[0]))
+
     return newLinks
 
 
@@ -247,7 +257,7 @@ def _verifyDictionary(carDict):
         return False
 
 
-def ConstructCarsTable(db, limit=40000):
+def ConstructCarsTable(db, limit=300000):
     methodName = inspect.stack()[0][3]
 
     newCars = 0
@@ -326,14 +336,16 @@ def collect(nameOfDb):
 
     moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
 
-    db = DataBase(nameOfDb)
-    constructDBTables(db)
+
 
     while True:
+        db = DataBase(nameOfDb)
+        constructDBTables(db)
+
         beginBrands = time.time()
         currentDate = datetime.datetime.now()
-        #newBrands = ConstructBrandsTable(db)
-        newBrands = 0
+        newBrands = ConstructBrandsTable(db)
+        #newBrands = 0
         moduleLogger.info("%s - Brands done. %s. Number of new brands: %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newBrands, time.time() - beginBrands))
 
@@ -353,6 +365,8 @@ def collect(nameOfDb):
         message += "New Brands: %d\nNew Links:  %d\nNew Cars:   %d\n" % (newBrands, newLinks, newCars)
         message += "All done in %d seconds\n\n" % (time.time() - now)
         moduleLogger.info("%s - %s" % (methodName, message))
+        del db
+
 
 
 if __name__ == "__main__":
