@@ -418,11 +418,11 @@ if __name__ == "__main__":
     parser.add_argument('database_name', metavar='DATABASE_NAME', type=str, nargs=1,
                         help='Name of a database file. If such file name does not exists, it will be created.')
 
-    parser.add_argument("--brands_limit", type=int, required=False, default=10,
+    parser.add_argument("--brands_limit", type=int, required=False, default=2000,
                         help='Maximum number of brands to be collected in one cycle.')
-    parser.add_argument("--links_limit", type=int, required=False, default=12,
+    parser.add_argument("--links_limit", type=int, required=False, default=100000,
                         help='Maximum number of links to be collected in one cycle.')
-    parser.add_argument("--cars_limit", type=int, required=False, default=13,
+    parser.add_argument("--cars_limit", type=int, required=False, default=200000,
                         help='Maximum number of cars to be collected in one cycle.')
 
     args = parser.parse_args()
