@@ -427,5 +427,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    collect(args.database_name, args.brands_limit, args.links_limit, args.cars_limit)
+    collect(args.database_name[0], args.brands_limit, args.links_limit, args.cars_limit)
 
