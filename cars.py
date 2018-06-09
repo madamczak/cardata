@@ -355,7 +355,7 @@ def constructDBTables(db):
     db.createTable('invalidlinks', InvalidLinksDict)
     db.createTable('collectcycle', CycleDict)
 
-def collect(nameOfDb):
+def collect(nameOfDb, brandsLimit=2000, linksLimit=100000, carslimit=200000):
     methodName = inspect.stack()[0][3]
 
     moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
@@ -368,7 +368,7 @@ def collect(nameOfDb):
 
         beginBrands = time.time()
         currentDate = datetime.datetime.now()
-        newBrands = ConstructBrandsTable(db)
+        newBrands = ConstructBrandsTable(db, limit=brandsLimit)
         #newBrands = 0
         moduleLogger.info("%s - Brands done. %s. Number of new brands: %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newBrands, time.time() - beginBrands))
@@ -376,7 +376,7 @@ def collect(nameOfDb):
         #start links
         dbmsg += """ "%s", """ % str(datetime.datetime.now())
         beginLinks = time.time()
-        newLinks = constructLinkTable(db, limit=100000)
+        newLinks = constructLinkTable(db, limit=linksLimit)
         #newLinks = 0
         moduleLogger.info("%s - Links done.  %s. Number of new links:  %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newLinks, time.time() - beginLinks))
@@ -386,7 +386,7 @@ def collect(nameOfDb):
         dbmsg += """ "%s", """ % str(datetime.datetime.now())
 
         beginCars = time.time()
-        newCars = ConstructCarsTable(db)
+        newCars = ConstructCarsTable(db, limit=carslimit)
         moduleLogger.info("%s - Cars done.   %s. Number of new cars:   %d. Done in %d seconds." % (methodName,
             datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), newCars, time.time() - beginCars))
 
@@ -412,5 +412,20 @@ def collect(nameOfDb):
         del db
 
 if __name__ == "__main__":
-    collect("refactor_test6zero.db")
+    import argparse
+
+    parser = argparse.ArgumentParser(description='CarDataCollector')
+    parser.add_argument('database_name', metavar='DATABASE_NAME', type=str, nargs=1,
+                        help='Name of a database file. If such file name does not exists, it will be created.')
+
+    parser.add_argument("--brands_limit", type=int, required=False, default=10,
+                        help='Maximum number of brands to be collected in one cycle.')
+    parser.add_argument("--links_limit", type=int, required=False, default=12,
+                        help='Maximum number of links to be collected in one cycle.')
+    parser.add_argument("--cars_limit", type=int, required=False, default=13,
+                        help='Maximum number of cars to be collected in one cycle.')
+
+    args = parser.parse_args()
+
+    collect(args.database_name, args.brands_limit, args.links_limit, args.cars_limit)
 
