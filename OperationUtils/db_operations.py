@@ -3,6 +3,8 @@ import sqlite3
 from OperationUtils.data_operations import DataCleaning
 from OperationUtils.logger import Logger
 import inspect
+import datetime
+import time
 
 
 moduleLogger = Logger.setLogger("dbops")
@@ -228,10 +230,13 @@ class DataBase(object):
 
         command = """SELECT 1 FROM %s WHERE "%s" = "%s" """ % (table, column, value)
         try:
+            now = time.time()
             self.c.execute(command)
+            moduleLogger.debug("%s - Command: %s executed in %f." % (methodName, command, float(time.time() - now)))
         except:
             return True
-        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
+            moduleLogger.debug("%s - Command: %s not executed successfully." % (methodName, command))
+
         valueIsPresentInDb = self.c.fetchall() != []
 
         if valueIsPresentInDb:
@@ -272,6 +277,7 @@ class DataBase(object):
 
         return columnExists
 
-
+    #TODO: Unit tests
     def clearParsedLinks(self):
-        self.executeSqlCommand("DELETE FROM Links WHERE parsed='True'")
+        self.executeSqlCommand("INSERT INTO oldlinks SELECT * FROM links WHERE time < '%s'" %
+                               str(datetime.datetime.now() - datetime.timedelta(30)))

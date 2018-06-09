@@ -15,7 +15,9 @@ def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
 
-def _openLinkAndReturnSoup(url):
+def openLinkAndReturnSoup(url):
+    start = time.time()
+    moduleLogger.debug("Opening: %s" % url)
     try:
         agent = {
             "User-Agent": 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36'}
@@ -26,10 +28,14 @@ def _openLinkAndReturnSoup(url):
         moduleLogger.info("%s - Problems with parsing %s, sleep 60 seconds." % (methodName, url))
         return None
 
-    return BeautifulSoup(page.content, "lxml")
+    bsObject = BeautifulSoup(page.content, "lxml")
+
+    moduleLogger.debug("Returning bs object from url: %s. It took %d seconds to parse it." % (url, time.time() - start))
+    return bsObject
 
 
 class URLOperations(object):
+    #remove this and change it to regex link checking
     forbiddenLinks = [
                     'https://allegro.pl/',
                     'https://allegro.pl/listing?string=',
@@ -58,7 +64,7 @@ class URLOperations(object):
 
     @staticmethod
     def getAllegroPrice(url):
-        soup = _openLinkAndReturnSoup(url)
+        soup = openLinkAndReturnSoup(url)
 
         try:
             price = int(float(DataCleaning.stripDecimalValue(soup.findAll("div", { "class" : "price" })[0]['data-price'])))
@@ -70,7 +76,7 @@ class URLOperations(object):
 
     @staticmethod
     def getOtomotoPrice(url):
-        soup = _openLinkAndReturnSoup(url)
+        soup = openLinkAndReturnSoup(url)
 
         try:
             price = int(soup.findAll("span",
@@ -87,7 +93,7 @@ class URLOperations(object):
         keys = []
         vals = []
 
-        soup = _openLinkAndReturnSoup(url)
+        soup = openLinkAndReturnSoup(url)
         try:
             tables = soup.findChildren('table')
         except:
@@ -145,7 +151,7 @@ class URLOperations(object):
         keys = []
         vals = []
 
-        soup = _openLinkAndReturnSoup(url)
+        soup = openLinkAndReturnSoup(url)
         try:
             tabele = soup.findChildren('ul')[6:10]
         except:
@@ -184,7 +190,7 @@ class URLOperations(object):
         methodName = inspect.stack()[0][3]
         d = {}
 
-        soup = _openLinkAndReturnSoup(url)
+        soup = openLinkAndReturnSoup(url)
         try:
             lis = soup.findChildren('li', {'class': 'offer-params__item'})
         except:
@@ -266,7 +272,7 @@ class URLOperations(object):
         methodName = inspect.stack()[0][3]
         dictionary = {}
 
-        soup = _openLinkAndReturnSoup(topUrl)
+        soup = openLinkAndReturnSoup(topUrl)
 
         if soup is None:
             return {}
@@ -289,10 +295,10 @@ class URLOperations(object):
             return dictionary
 
     @staticmethod
-    def getLinksFromCategorySite(url):
+    def getLinksFromCategorySite(url, startTimeParameter="&startingTime=13"):
         methodName = inspect.stack()[0][3]
         try:
-            lastLinkSiteNumber = int(_openLinkAndReturnSoup(url).find_all("li", {"class" : "quantity"})[0].text)
+            lastLinkSiteNumber = int(openLinkAndReturnSoup(url).find_all("li", {"class" : "quantity"})[0].text)
             moduleLogger.debug("%s - There are currently %d categories in DB." % (methodName, lastLinkSiteNumber))
         except:
             lastLinkSiteNumber = 1
@@ -306,6 +312,9 @@ class URLOperations(object):
                 address = url + "?p=" + str(i)
             else:
                 address = url
+
+            if startTimeParameter is not None:
+                address += "&startingTime=13" #get links only from last 2 weeks for performance reasons
 
             try:
                 r = urllib.urlopen(address).read()

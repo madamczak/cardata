@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 from OperationUtils.data_operations import DataCleaning
 from OperationUtils.db_operations import DataBase
-from OperationUtils.url_operations import _openLinkAndReturnSoup, URLOperations
+from OperationUtils.url_operations import openLinkAndReturnSoup, URLOperations
 import OperationUtils.url_operations
 import unittest
 from mock import patch
@@ -21,17 +21,17 @@ testDB = DataBase("UnitTests/test.db")
 
 class AllegroUrlParsing(unittest.TestCase):
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=allegroSoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=allegroSoup)
     def test_can_parse_price(self, mockSoup):
         price = URLOperations.getAllegroPrice(None)
         self.assertEqual(303000, price)
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_0_on_invalid_soup(self, mockSoup):
         price = URLOperations.getAllegroPrice(None)
         self.assertEqual(0, price)
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=allegroSoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=allegroSoup)
     def test_can_parse_site_properly(self, mockSoup):
         parsedDict = URLOperations.parseAllegroSite(None)
         self.assertNotEqual({}, parsedDict)
@@ -45,24 +45,24 @@ class AllegroUrlParsing(unittest.TestCase):
         self.assertEqual('uzywany', parsedDict.get('stan:'))
         self.assertEqual('automatyczna dwusprzegowa (dct, dsg)', parsedDict.get('skrzynia biegow:'))
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_empty_dict_on_invalid_soup(self, mockSoup):
         parsedDict = URLOperations.parseAllegroSite(None)
         self.assertEqual({}, parsedDict)
 
 class OtomotoUrlParsing(unittest.TestCase):
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=otomotoSoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=otomotoSoup)
     def test_can_parse_price(self, mockSoup):
         price = URLOperations.getOtomotoPrice(None)
         self.assertEqual(729000, price)
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_0_on_invalid_soup(self, mockSoup):
         price = URLOperations.getOtomotoPrice(None)
         self.assertEqual(0, price)
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=otomotoSoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=otomotoSoup)
     def test_can_parse_type_2_site_properly(self, mockSoup):
         parsedDict = URLOperations.parseOtoMotoSite2(None)
         self.assertNotEqual({}, parsedDict)
@@ -75,13 +75,13 @@ class OtomotoUrlParsing(unittest.TestCase):
         self.assertEqual('4', parsedDict.get('liczba drzwi'))
         self.assertEqual('automatyczna hydrauliczna (klasyczna)', parsedDict.get('skrzynia biegow'))
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_empty_dict_on_invalid_soup_from_type_2_site(self, mockSoup):
         parsedDict = URLOperations.parseOtoMotoSite2(None)
         self.assertEqual({}, parsedDict)
 
     #TODO: Catch type 1 site and test it
-    # @patch('url_operations._openLinkAndReturnSoup', return_value=otomotoSoup)
+    # @patch('url_operations.openLinkAndReturnSoup', return_value=otomotoSoup)
     # def test_can_parse_type_2_site_properly(self):
     #
     #     parsedDict = URLOperations.parseOtoMotoSite("https://www.otomoto.pl/oferta/audi-a8-audi-a8-long-po-oplatach-w-pl-ID6zhvz9.html")
@@ -95,13 +95,13 @@ class OtomotoUrlParsing(unittest.TestCase):
     #     self.assertEqual('4', parsedDict.get('liczba drzwi'))
     #     self.assertEqual('automatyczna hydrauliczna (klasyczna)', parsedDict.get('skrzynia biegow'))
 
-    # @patch('url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    # @patch('url_operations.openLinkAndReturnSoup', return_value=emptySoup)
     # def test_returns_empty_dict_on_invalid_soup_from_type_2_site(self, mockSoup):
     #     parsedDict = URLOperations.parseAllegroSite(None)
     #     self.assertEqual({}, parsedDict)
 
 class CategoriesUrlParsing(unittest.TestCase):
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=rootCategorySoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=rootCategorySoup)
     def test_returns_categories(self, mockSoup):
         parsedDict = URLOperations.getAllBrands("https://allegro.pl/kategoria/samochody-osobowe-4029")
         self.assertNotEqual({}, parsedDict)
@@ -110,17 +110,17 @@ class CategoriesUrlParsing(unittest.TestCase):
         self.assertTrue("Renault" in parsedDict.keys())
         self.assertTrue("Alfa Romeo" in parsedDict.keys())
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=rootCategorySoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=rootCategorySoup)
     def test_does_not_return_categories_with_invalid_url(self, mockSoup):
         parsedDict = URLOperations.getAllBrands("INVALID URL")
         self.assertEqual({}, parsedDict)
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_empty_dict_on_invalid_category_url(self, mockSoup):
         parsedDict = URLOperations.getAllBrands(None)
         self.assertEqual({}, parsedDict)
 
-    @patch('OperationUtils.url_operations._openLinkAndReturnSoup', return_value=None)
+    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=None)
     def test_returns_empty_dict_on_None_soup(self, mockSoup):
         parsedDict = URLOperations.getAllBrands(None)
         self.assertEqual({}, parsedDict)
@@ -510,11 +510,12 @@ class DataBaseOpsUsage(unittest.TestCase):
         self.assertEquals(len(allCars), 3)
 
     def test_db_get_count_of_records(self):
-        self.assertEquals(testDB.countRecordsInTable("Links"), 15)
+        self.assertEquals(testDB.countRecordsInTable("links"), 15)
 
     def test_db_get_max_value(self):
-        self.assertEquals(testDB.getMaxFromColumnInTable("L_ID", "Links"), 246)
+        self.assertEquals(testDB.getMaxFromColumnInTable("l_id", "links"), 246)
 
 
 if __name__ == "__main__":
+    print "AAA"
     unittest.main()
