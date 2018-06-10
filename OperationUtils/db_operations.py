@@ -277,7 +277,8 @@ class DataBase(object):
 
         return columnExists
 
-    #TODO: Unit tests
+    #TODO: Unit tests, calculate how many links were transfered and return it
     def clearParsedLinks(self):
+
         self.executeSqlCommand("INSERT INTO oldlinks SELECT * FROM links WHERE time < '%s'" %
                                str(datetime.datetime.now() - datetime.timedelta(30)))
