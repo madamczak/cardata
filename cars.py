@@ -15,107 +15,121 @@ class CarDataCollector(object):
     def __init__(self, databaseName):
         self.db = DataBase(databaseName)
 
-    def ConstructBrandsTable(self, limit=2000):
+    def _addNewBrandCategory(self, item, count):
+        # todo: create method that verifies if brand/model/version is present in db
         methodName = inspect.stack()[0][3]
 
-        newBrands = 0
-        d = {}
+        if not self.db.valueIsPresentInColumnOfATable(item[1], 'link', "cars_brand") \
+                and not self.db.valueIsPresentInColumnOfATable(item[0], 'brandname', "cars_brand"):
+            s = """%d, "%s", NULL, NULL, "%s" """ % (count, item[0], item[1])
+            moduleLogger.debug("%s - New brand found: %s." % (methodName, s))
+            self.db.insertStringData("cars_brand", s)
+            return 1
+        else:
+            return 0
 
-        c = self.db.getMaxFromColumnInTable("b_id", "cars_brand") + 1
+    def _addNewModelCategory(self, item, model, count):
+        methodName = inspect.stack()[0][3]
 
-        moduleLogger.debug("%s - ConstructBrandsTable - Current number of brands: %d." % (methodName, c - 1))
+        if not self.db.valueIsPresentInColumnOfATable(model[1], 'link', "cars_brand") \
+                and not self.db.valueIsPresentInColumnOfATable(model[0], 'modelname', "cars_brand"):
+            s = """%d, "%s", "%s", NULL, "%s" """ % (count, item[0], model[0], model[1])
+            moduleLogger.debug("%s - New model found: %s." % (methodName, s))
+            self.db.insertStringData("cars_brand", s)
+            return 1
+        else:
+            return 0
 
+    def _addNewVersionCategory(self, item, model, ver, count):
+        methodName = inspect.stack()[0][3]
+        versionName = DataCleaning.normalize(ver[0])
         pattern1 = re.compile(".*\(\d+-")
         pattern2 = re.compile(".*T\d")
 
+        if not self.db.valueIsPresentInColumnOfATable(ver[1], 'link', "cars_brand") \
+                and (pattern1.match(str(versionName)) or pattern2.match(str(versionName))):
+            s = """%d, "%s", "%s", "%s", "%s" """ % (count, item[0], model[0], ver[0], ver[1])
+            moduleLogger.debug("%s - New version found: %s." % (methodName, s))
+            self.db.insertStringData("cars_brand", s)
+            return 1
+        else:
+            return 0
+
+    def _bottomReached(self, upperDictionary, lowerDictionary):
+        return all([k in upperDictionary.keys() for k in lowerDictionary.keys()])
+
+    def ConstructBrandsTable(self, limit=2000):
+        methodName = inspect.stack()[0][3]
+        startAmountOfBrands = self.db.getMaxFromColumnInTable("b_id", "cars_brand")
+        counter = startAmountOfBrands + 1
+        moduleLogger.debug("%s - Current number of brands: %d." % (methodName, counter - 1))
+
         top = URLOperations.getAllBrands("https://allegro.pl/kategoria/samochody-osobowe-4029")
         for it in top.items():
-
-            if newBrands > limit:
-                moduleLogger.info("%s - Collected %d brands." % (methodName, newBrands))
+            if (counter - startAmountOfBrands) > limit:
+                moduleLogger.info("%s - Collected %d brands." % (methodName, counter - startAmountOfBrands))
                 break
 
-            d[it[0]] = {}
             models = URLOperations.getAllBrands(it[1])
-            if not all([k in top.keys() for k in models.keys()]):
+            if not self._bottomReached(top, models):
                 for model in models.items():
-                    d[it[0]][(model[0])] = []
                     versions = URLOperations.getAllBrands(model[1])
-                    if not all([k in models.keys() for k in versions.keys()]):
+                    if not self._bottomReached(models, versions):
                         for ver in versions.items():
-                            d[it[0]][(model[0])].append(ver)
-                            versionName = DataCleaning.normalize(ver[0])
-                            if not self.db.valueIsPresentInColumnOfATable(ver[1], 'link', "cars_brand") \
-                                    and (pattern1.match(str(versionName)) or pattern2.match(str(versionName))):
-                                s = """%d, "%s", "%s", "%s", "%s" """ % (c, it[0], model[0], ver[0], ver[1])
-                                moduleLogger.debug("%s - New version found: %s." % (methodName, s))
-                                self.db.insertStringData("cars_brand", s)
-                                c += 1
-                                newBrands += 1
+                            counter += self._addNewVersionCategory(it, model, ver, counter)
                     else:
-                        if not self.db.valueIsPresentInColumnOfATable(model[1], 'link', "cars_brand") \
-                                and not self.db.valueIsPresentInColumnOfATable(model[0], 'modelname', "cars_brand"):
-                            s = """%d, "%s", "%s", NULL, "%s" """ % (c, it[0], model[0], model[1])
-                            moduleLogger.debug("%s - New model found: %s." % (methodName, s))
-                            self.db.insertStringData("cars_brand", s)
-                            c += 1
-                            newBrands += 1
+                        counter += self._addNewModelCategory(it, model, counter)
             else:
-                if not self.db.valueIsPresentInColumnOfATable(it[1], 'link', "cars_brand") \
-                        and not self.db.valueIsPresentInColumnOfATable(it[0], 'brandname', "cars_brand"):
-                    s = """%d, "%s", NULL, NULL, "%s" """ % (c, it[0], it[1])
-                    moduleLogger.debug("%s - New brand found: %s." % (methodName, s))
-                    self.db.insertStringData("cars_brand", s)
-                    c += 1
-                    newBrands += 1
-        moduleLogger.debug("%s - Number of new brands found: %d." % (methodName, newBrands))
-        return newBrands
+                counter += self._addNewBrandCategory(it, counter)
+        moduleLogger.debug("%s - Number of new brands found: %d." % (methodName, counter - startAmountOfBrands))
 
-    def ConstructLinkTable(self, limit=1000):
+        #todo: unit test if return does not make a mistake (+/- 1)
+        return counter - startAmountOfBrands
+
+    def _getNewLinksFromCategorySite(self, categoryTuple):
         methodName = inspect.stack()[0][3]
+        moduleLogger.info("%s - %s - Working on category with id: %s, link: %s." %
+                          (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M"),
+                           categoryTuple[0], categoryTuple[4]))
 
-        newLinks = 0
+        return [str(link) for link in URLOperations.getLinksFromCategorySite(categoryTuple[4])
+                if not self.db.valueIsPresentInColumnOfATable(str(link), 'link', "links")]
+
+    def _insertLinksFromCategoryToDatabase(self, categoryTuple, links):
+        methodName = inspect.stack()[0][3]
         counter = self.db.getMaxFromColumnInTable("l_id", "links") + 1
 
-        moduleLogger.debug("%s - Current number of links: %d." % (methodName, counter - 1))
+        for link in links:
+            moduleLogger.debug("%s - Inserting link: %s to Links table." % (methodName, link))
+            s = """ %d, %d, "%s", "%s", "%r" """ % \
+                (counter, categoryTuple[0], str(datetime.datetime.now()), link, False)
 
-        categories = self.readAllDataGenerator('cars_brand')
+            #todo: think about inserting links from entire list instead of inserting each one by one
+            #todo: method to insert a link
+            self.db.insertStringData("links", s)
+            counter += 1
 
-        for cat in categories:
-            if newLinks > limit:
-                moduleLogger.info("%s - Collected %d links." % (methodName, limit))
+        if links:
+            moduleLogger.info("%s - Number of new links: %d." % (methodName, len(links)))
+        else:
+            moduleLogger.info("%s - There weren't any new links in category with b_id: %d" %
+                              (methodName, categoryTuple[0]))
+
+
+    def ConstructLinkTable(self, limit=100000):
+        methodName = inspect.stack()[0][3]
+        numberOfNewLinks = 0
+
+        for cat in self.db.readAllDataGenerator('cars_brand'):
+            if numberOfNewLinks > limit:
+                moduleLogger.info("%s - Collected more links than specified limit - %d." % (methodName, limit))
                 break
+            newLinks = self._getNewLinksFromCategorySite(cat)
+            self._insertLinksFromCategoryToDatabase(cat, newLinks)
 
-            # moduleLogger.info("%s - Currently getting links from category with B_id: %d ." % (methodName, cat[0]))
-            moduleLogger.info("%s - %s - Working on category with id: %s, link: %s." %
-                              (datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), methodName, cat[0], cat[4]))
-            links = []
-            for link in URLOperations.getLinksFromCategorySite(cat[4]):
-                try:
-                    lnk = str(link)
-                    # get new way of inserting links into a table
-                    # do not check it here, collect all of them and after that insert them to database
+            numberOfNewLinks += len(newLinks)
 
-                    # multi threaded checking if link is in the table
-                    if not self.valueIsPresentInColumnOfATable(lnk, 'link', "links"):
-                        links.append(lnk)
-                except:
-                    moduleLogger.info("%s - Unable to add link to list: %s" % (methodName, link))
-                    continue
-
-            for link in links:
-                moduleLogger.debug("%s - Inserting link: %s to Links table." % (methodName, link))
-                s = """ %d, %d, "%s", "%s", "%r" """ % (counter, cat[0], str(datetime.datetime.now()), link, False)
-                self.db.insertStringData("links", s)
-                counter += 1
-                newLinks += 1
-
-            if links:
-                moduleLogger.info("%s - Number of new links: %d." % (methodName, len(links)))
-            else:
-                moduleLogger.info("%s - There weren't any new links in category with b_id: %d" % (methodName, cat[0]))
-
-        return newLinks
+        return numberOfNewLinks
 
     def _checkDigit(self, textValue):
         if type(textValue) == int or textValue.isdigit():
@@ -276,13 +290,56 @@ class CarDataCollector(object):
             moduleLogger.debug("Car dictionary has less than 15 keys. Number of keys: %d" % len(carDict))
             return False
 
+    def _parseLinks(self, linkTuple):
+        pass
+
+    def _parseAllegroLink(self, allegroLinkTuple):
+        methodName = inspect.stack()[0][3]
+        d = URLOperations.parseAllegroSite(allegroLinkTuple[3])
+
+        if self._verifyDictionary(d):
+            moduleLogger.debug("%s - Verified positively. Will be inserted in cars_car table." % methodName)
+            s = self.constructAllegroCarInsert(allegroLinkTuple[1], allegroLinkTuple[0], d)
+            # todo: create insert car method
+            self.db.insertStringData("cars_car", s)
+            return 1
+        else:
+            moduleLogger.debug(
+                "%s - Verified negatively. Will be inserted in InvalidLinks table." % methodName)
+            s = """ "%d", "%s", "%s", "True" """ % (allegroLinkTuple[0], str(datetime.datetime.now()), allegroLinkTuple[3])
+            # todo: create insert invalid link method
+            self.db.insertStringData("invalidlinks", s)
+            return 0
+
+    def _parseOtomotoLink(self, otomotoLinkTuple):
+        methodName = inspect.stack()[0][3]
+        # todo: create one method for otomotoLinks
+        d = URLOperations.parseOtoMotoSite2(otomotoLinkTuple[3])
+        if not d:
+            d = URLOperations.parseOtoMotoSite(otomotoLinkTuple[3])
+
+        if self._verifyDictionary(d):
+            moduleLogger.debug("%s - Verified positively. Will be inserted in CarData table." % methodName)
+            s = self.constructOtomotoCarInsert(otomotoLinkTuple[1], otomotoLinkTuple[0], d)
+            self.db.insertStringData("cars_car", s)
+            return 1
+        else:
+            moduleLogger.debug(
+                "%s - Verified negatively. Will be inserted in InvalidLinks table." % methodName)
+            s = """ "%d", "%s", "%s", "True" """ % (otomotoLinkTuple[0], str(datetime.datetime.now()), otomotoLinkTuple[3])
+            self.db.insertStringData("invalidlinks", s)
+            return 0
+
+
     def ConstructCarsTable(self, limit=300000):
         methodName = inspect.stack()[0][3]
 
         newCars = 0
+        #todo: this variable seems to be only used in logging - remove it
         currentB_id = ""
 
         counter = 0
+        #todo: create method to get all unparsed links
         for entry in self.db.readAllDataGenerator('links', where='WHERE parsed = "False"'):
             if counter > limit:
                 moduleLogger.info("%s - Collected %d cars." % (methodName, limit))
@@ -294,40 +351,14 @@ class CarDataCollector(object):
                 moduleLogger.info("%s - %s - Currently working on links from %s b_id. It has %s l_id" %
                                   (datetime.datetime.now().strftime("%d-%m-%Y %H:%M"), methodName, entry[1], entry[0]))
 
-            if entry[4] == 'False':
+            if 'allegro' in entry[3]:
+                newCars += self._parseAllegroLink(entry)
 
-                if 'allegro' in entry[3]:
-                    d = URLOperations.parseAllegroSite(entry[3])
+            elif 'otomoto' in entry[3]:
+                newCars += self._parseOtomotoLink(entry)
 
-                    if self._verifyDictionary(d):
-                        moduleLogger.debug("%s - Verified positively. Will be inserted in cars_car table." % methodName)
-                        s = self.constructAllegroCarInsert(entry[1], entry[0], d)
-                        self.db.insertStringData("cars_car", s)
-                        newCars += 1
-                    else:
-                        moduleLogger.debug(
-                            "%s - Verified negatively. Will be inserted in InvalidLinks table." % methodName)
-                        s = """ "%d", "%s", "%s", "True" """ % (entry[0], str(datetime.datetime.now()), entry[3])
-                        self.db.insertStringData("invalidlinks", s)
-
-                elif 'otomoto' in entry[3]:
-
-                    d = URLOperations.parseOtoMotoSite2(entry[3])
-                    if not d:
-                        d = URLOperations.parseOtoMotoSite(entry[3])
-
-                    if self._verifyDictionary(d):
-                        moduleLogger.debug("%s - Verified positively. Will be inserted in CarData table." % methodName)
-                        s = self.constructOtomotoCarInsert(entry[1], entry[0], d)
-                        self.db.insertStringData("cars_car", s)
-                        newCars += 1
-                    else:
-                        moduleLogger.debug(
-                            "%s - Verified negatively. Will be inserted in InvalidLinks table." % methodName)
-                        s = """ "%d", "%s", "%s", "True" """ % (entry[0], str(datetime.datetime.now()), entry[3])
-                        self.db.insertStringData("invalidlinks", s)
-
-                        self.db.executeSqlCommand("""UPDATE links SET parsed = "True" WHERE link = "%s" """ % entry[3])
+            #todo: there should be unit test for this line below
+            self.db.executeSqlCommand("""UPDATE links SET parsed = "True" WHERE link = "%s" """ % entry[3])
         return newCars
 
     def _constructDBTables(self, db):
@@ -428,11 +459,11 @@ class CarDataCollector(object):
         self.db.insertStringData("collectcycle", dbmsg)
         return carsStartTime, newBrands, newLinks, newCars, endTime
 
-    def _logMessage(self, startTime, newBrands, newLinks, newCars, endTime):
+    def _logEndCycleMessage(self, startTime, newBrands, newLinks, newCars, endTime):
         message = '\nStarted: %s\n' % startTime
         message += "New Brands: %d\nNew Links:  %d\nNew Cars:   %d\n" % (newBrands, newLinks, newCars)
         message += "End date: %s" % endTime
-        moduleLogger.info("%s - %s" % message)
+        moduleLogger.info("%s" % message)
 
     def collect(self, brandsLimit=2000, linksLimit=100000, carslimit=200000, reversed=False):
         methodName = inspect.stack()[0][3]
@@ -447,11 +478,10 @@ class CarDataCollector(object):
                 startTime, newBrands, newLinks, newCars, endTime = \
                     self._collectReversed(brandsLimit, linksLimit, carslimit)
 
-
             # clean old links from db
             self.db.clearParsedLinks()
 
-            self._logMessage(startTime, newBrands, newLinks, newCars, endTime)
+            self._logEndCycleMessage(startTime, newBrands, newLinks, newCars, endTime)
 
 
 if __name__ == "__main__":
