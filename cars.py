@@ -361,7 +361,8 @@ class CarDataCollector(object):
             self.db.executeSqlCommand("""UPDATE links SET parsed = "True" WHERE link = "%s" """ % entry[3])
         return newCars
 
-    def _constructDBTables(self, db):
+    @staticmethod
+    def constructDBTables(db):
         brandsDict = OrderedDict(
             [('b_id', "INT"), ('brandname', "TEXT"), ('modelname', "TEXT"), ('version', "TEXT"), ('link', "TEXT")])
         linksDict = OrderedDict(
@@ -469,7 +470,7 @@ class CarDataCollector(object):
         methodName = inspect.stack()[0][3]
 
         moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
-        self._constructDBTables(self.db)
+        CarDataCollector.constructDBTables(self.db)
         while True:
             if not reversed:
                 startTime, newBrands, newLinks, newCars, endTime = \

@@ -1,100 +1,45 @@
-import unittest
+import unittest, os
 
-import os
-from mock import patch
-from cars import ConstructBrandsTable, constructDBTables, constructLinkTable, ConstructCarsTable
 import datetime
 from OperationUtils.db_operations import DataBase
-from OperationUtils.data_operations import GEARBOXWORDSDICT, FUELWORDSDICT, COLORWORDSDICT, STATEWORDSDICT, \
-    DataCleaning
+from Collectors.BrandsCollector import BrandsCollector
+from Collectors.LinksCollector import LinksCollector
+from Collectors.CarsCollector import CarsCollector
+from cars import CarDataCollector
 
-
-class DBCreation(unittest.TestCase):
+class CollectBrandsTest(unittest.TestCase):
     def setUp(self):
-        self.newDb = DataBase("integration_test.db")
-
-    def testDataCollection(self):
-        #Tables
-        constructDBTables(self.newDb)
-        self.assertTrue(self.newDb.tableExists("Brands"))
-        self.assertTrue(self.newDb.tableExists("Links"))
-        self.assertTrue(self.newDb.tableExists("InvalidLinks"))
-        self.assertTrue(self.newDb.tableExists("CarData"))
-
-        #Brands
-        newBrands = ConstructBrandsTable(self.newDb)
-        self.assertGreater(newBrands, 1300)
-
-        brandIds = []
-        for brand in self.newDb.readAllDataGenerator("Brands", amount=1500):
-            self.assertTrue(brand[0] != 0)
-            self.assertTrue(brand[0] not in brandIds)
-            brandIds.append(brand[0])
-            self.assertTrue(brand[1] != "")
-
-            self.assertTrue(brand[4] != "")
-            self.assertTrue("kategoria" in brand[4])
-            # assert that brand name or model name is in the link
-
-            # if not DataCleaning.normalize(brand[1]) in str(brand[4]):
-            #     if brand[1] is not None:
-            #         self.assertTrue(DataCleaning.normalize(brand[2]) in str(brand[4]))
-            #     else:
-            #         # brand name not in link
-            #         self.assertTrue(False)
-
-        self.assertTrue(self.newDb.valueIsPresentInColumnOfATable("Civic", "modelName", "Brands"))
-        self.assertTrue(self.newDb.valueIsPresentInColumnOfATable("VIII (2006-2011)", "version", "Brands"))
-
-        newLinks = constructLinkTable(self.newDb, limit=2000)
-
-        # 3000 because number of links is decided per category.
-        # If there is 1999 links read from previous categories and
-        # next one will contain 2 links the number of new links will be 2001, not 2000.
-        # Therefore I assume 3000 is enough, or is it?
-        self.assertLess(newLinks, 3000)
-
-        wrongCount = 0
-        for link in self.newDb.readAllDataGenerator("Links", amount=3000):
-            self.assertTrue(link[4] == "False")
-            #TODO assert that time of link collection is no longer that 15minutes
-
-            #assert that brand name is in the link
-            brandInfo = self.newDb.getBrandInfo(link[1])
-            if not brandInfo[0] in link[3]:
-                if len(brandInfo) >= 2 and not brandInfo[1] in link[3]:
-                    wrongCount += 1
-
-            if wrongCount > 20: #around 1% of links amount
-                self.assertTrue(False)
-
-
-        newCars = ConstructCarsTable(self.newDb, limit=2000)
-        self.assertGreater(newCars, 1500)
-
-        for car in self.newDb.readAllDataGenerator("CarData", amount=2000):
-            self.assertGreater(car[2], 1900)
-            self.assertLess(car[2], datetime.datetime.now().year + 1)
-
-            self.assertGreater(car[3], 0)
-            self.assertGreater(car[4], 0)
-            self.assertGreater(car[5], 0)
-
-            self.assertIn(car[6], FUELWORDSDICT.values())
-            self.assertIn(car[7], COLORWORDSDICT.values())
-            self.assertIn(car[10], GEARBOXWORDSDICT.values())
-            self.assertGreater(car[11], 0)
-            self.assertLess(car[11], 10000000)
-            #TODO assert that time of car collection is no longer that 15minutes
-
-        # assert that InvalidLinks table contains 2000 - numberOfnewCars values
-        self.assertAlmostEquals(self.newDb.countRecordsInTable("InvalidLinks"), 2000-newCars, delta=5)
-
-
+        self.dbName = "integration_test.db"
+        self.database = DataBase(self.dbName)
+        CarDataCollector.constructDBTables(self.database)
 
     def tearDown(self):
-        del self.newDb
-        #self.addCleanup(os.remove, "integration_test.db")
+        del self.database
+        os.remove("C:\\Users\\asd\\PycharmProjects\\cardata\\" + self.dbName)
+
+    def testBrandsCollection(self):
+        brandsCollector = BrandsCollector(self.dbName)
+        numberOfBrands = brandsCollector.Collect(limit=20)
+        self.assertTrue(brandsCollector.db.valueIsPresentInColumnOfATable("Rover", "brandname", "cars_brand"))
+        self.assertTrue(brandsCollector.db.valueIsPresentInColumnOfATable("Honda", "brandname", "cars_brand"))
+        self.assertTrue(brandsCollector.db.valueIsPresentInColumnOfATable("Mercury", "brandname", "cars_brand"))
+
+        #todo: inconsistency between brands limit and number of brands collected (models and version counted as brands)
+        self.assertGreater(numberOfBrands, 20)
+        self.assertGreater(brandsCollector.db.countRecordsInTable("cars_brand"), 20)
+        #todo: by 1 error below
+        self.assertEqual(brandsCollector.db.countRecordsInTable("cars_brand"), numberOfBrands)
+        linksCollector = LinksCollector("integration_test.db")
+        numberOfLinks = linksCollector.Collect(limit=100)
+        self.assertFalse(linksCollector.db.valueIsPresentInColumnOfATable("True", "parsed", "links"))
+        self.assertGreater(numberOfLinks, 100)
+        self.assertEqual(linksCollector.db.countRecordsInTable("links"), numberOfLinks)
+
+        carsCollector = CarsCollector(self.dbName)
+        numberOfCars = carsCollector.Collect()
+        self.assertGreater(numberOfCars, 0)
+        self.assertLess(numberOfCars, numberOfLinks)
+        self.assertEqual(carsCollector.db.countRecordsInTable("cars_car"), numberOfCars)
 
 if __name__ == "__main__":
     unittest.main()
