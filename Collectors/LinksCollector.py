@@ -9,11 +9,8 @@ moduleLogger = Logger.setLogger("LinksCollector")
 
 #todo: Test for Collect method
 class LinksCollector(object):
-    def __init__(self, databaseName):
-        self.db = DataBase(databaseName)
-
-    def __del__(self):
-        del self.db
+    def __init__(self, database):
+        self.db = database
 
     def _getNewLinksFromCategorySite(self, categoryTuple):
         methodName = inspect.stack()[0][3]
@@ -49,13 +46,15 @@ class LinksCollector(object):
         methodName = inspect.stack()[0][3]
         numberOfNewLinks = 0
 
+        startTime = datetime.datetime.now()
         for cat in self.db.readAllDataGenerator('cars_brand'):
             if numberOfNewLinks > limit:
                 moduleLogger.info("%s - Collected more links than specified limit - %d." % (methodName, limit))
                 break
+
             newLinks = self._getNewLinksFromCategorySite(cat)
             self._insertLinksFromCategoryToDatabase(cat, newLinks)
 
             numberOfNewLinks += len(newLinks)
 
-        return numberOfNewLinks
+        return numberOfNewLinks, startTime

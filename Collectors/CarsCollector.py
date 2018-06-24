@@ -10,11 +10,8 @@ moduleLogger = Logger.setLogger("CarsCollector")
 
 #todo: Test for Collect method
 class CarsCollector(object):
-    def __init__(self, dbName):
-        self.db = DataBase(dbName)
-
-    def __del__(self):
-        del self.db
+    def __init__(self, database):
+        self.db = database
 
     def _checkDigit(self, textValue):
         if type(textValue) == int or textValue.isdigit():
@@ -224,6 +221,7 @@ class CarsCollector(object):
         currentB_id = ""
 
         counter = 0
+        startTime = datetime.datetime.now()
         #todo: create method to get all unparsed links
         for entry in self.db.readAllDataGenerator('links', where='WHERE parsed = "False"'):
             if counter > limit:
@@ -244,4 +242,4 @@ class CarsCollector(object):
 
             #todo: there should be unit test for this line below
             self.db.executeSqlCommand("""UPDATE links SET parsed = "True" WHERE link = "%s" """ % entry[3])
-        return newCars
+        return newCars, startTime

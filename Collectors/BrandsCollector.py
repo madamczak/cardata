@@ -1,4 +1,4 @@
-import re
+import re, datetime
 
 from OperationUtils.data_operations import DataCleaning
 from OperationUtils.url_operations import URLOperations
@@ -10,11 +10,8 @@ moduleLogger = Logger.setLogger("BrandsCollector")
 
 #todo: Test for Collect method
 class BrandsCollector(object):
-    def __init__(self, dbName):
-        self.db = DataBase(dbName)
-
-    def __del__(self):
-        del self.db
+    def __init__(self, database):
+        self.db = database
 
     def _addNewBrandCategory(self, item, count):
         # todo: create method that verifies if brand/model/version is present in db
@@ -61,9 +58,11 @@ class BrandsCollector(object):
 
     def Collect(self, limit=2000):
         methodName = inspect.stack()[0][3]
+
         startAmountOfBrands = self.db.getMaxFromColumnInTable("b_id", "cars_brand")
         counter = startAmountOfBrands + 1
         moduleLogger.debug("%s - Current number of brands: %d." % (methodName, counter - 1))
+        startTime = datetime.datetime.now()
 
         top = URLOperations.getAllBrands("https://allegro.pl/kategoria/samochody-osobowe-4029")
         for it in top.items():
@@ -86,4 +85,4 @@ class BrandsCollector(object):
         moduleLogger.debug("%s - Number of new brands found: %d." % (methodName, counter - startAmountOfBrands))
 
         #todo: unit test if return does not make a mistake (+/- 1)
-        return counter - startAmountOfBrands - 1
+        return counter - startAmountOfBrands - 1, startTime
