@@ -7,17 +7,15 @@ from Collectors.LinksCollector import LinksCollector
 from Collectors.CarsCollector import CarsCollector
 from cars import CarDataCollector
 
-class CollectBrandsTest(unittest.TestCase):
+class SeparateCollectorsTest(unittest.TestCase):
     def setUp(self):
         self.separateDBname = "separate_collectors_test.db"
-        self.combinedDBname = "combined_collectors_test.db"
         self.database = DataBase(self.separateDBname)
         CarDataCollector.constructDBTables(self.database)
 
     def tearDown(self):
         del self.database
         os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname))
-        os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.combinedDBname))
 
     def testSeparateCollectors(self):
         brandsCollector = BrandsCollector(self.separateDBname)
@@ -42,6 +40,13 @@ class CollectBrandsTest(unittest.TestCase):
         self.assertGreater(numberOfCars, 0)
         self.assertLess(numberOfCars, numberOfLinks)
         self.assertEqual(carsCollector.db.countRecordsInTable("cars_car"), numberOfCars)
+
+class CombinedCollectorsTest(unittest.TestCase):
+    def setUp(self):
+        self.combinedDBname = "combined_collectors_test.db"
+
+    def tearDown(self):
+        os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.combinedDBname))
 
     def testCombinedCollectors(self):
         collector = CarDataCollector(self.combinedDBname)
