@@ -1,6 +1,6 @@
 import unittest, os
 
-import datetime
+import inspect
 from OperationUtils.db_operations import DataBase
 from Collectors.BrandsCollector import BrandsCollector
 from Collectors.LinksCollector import LinksCollector
@@ -9,16 +9,18 @@ from cars import CarDataCollector
 
 class CollectBrandsTest(unittest.TestCase):
     def setUp(self):
-        self.dbName = "integration_test.db"
-        self.database = DataBase(self.dbName)
+        self.separateDBname = "separate_collectors_test.db"
+        self.combinedDBname = "combined_collectors_test.db"
+        self.database = DataBase(self.separateDBname)
         CarDataCollector.constructDBTables(self.database)
 
     def tearDown(self):
         del self.database
-        os.remove("C:\\Users\\asd\\PycharmProjects\\cardata\\" + self.dbName)
+        os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname))
+        os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.combinedDBname))
 
-    def testBrandsCollection(self):
-        brandsCollector = BrandsCollector(self.dbName)
+    def testSeparateCollectors(self):
+        brandsCollector = BrandsCollector(self.separateDBname)
         numberOfBrands = brandsCollector.Collect(limit=20)
         self.assertTrue(brandsCollector.db.valueIsPresentInColumnOfATable("Rover", "brandname", "cars_brand"))
         self.assertTrue(brandsCollector.db.valueIsPresentInColumnOfATable("Honda", "brandname", "cars_brand"))
@@ -29,17 +31,33 @@ class CollectBrandsTest(unittest.TestCase):
         self.assertGreater(brandsCollector.db.countRecordsInTable("cars_brand"), 20)
         #todo: by 1 error below
         self.assertEqual(brandsCollector.db.countRecordsInTable("cars_brand"), numberOfBrands)
-        linksCollector = LinksCollector("integration_test.db")
+        linksCollector = LinksCollector(self.separateDBname)
         numberOfLinks = linksCollector.Collect(limit=100)
         self.assertFalse(linksCollector.db.valueIsPresentInColumnOfATable("True", "parsed", "links"))
         self.assertGreater(numberOfLinks, 100)
         self.assertEqual(linksCollector.db.countRecordsInTable("links"), numberOfLinks)
 
-        carsCollector = CarsCollector(self.dbName)
+        carsCollector = CarsCollector(self.separateDBname)
         numberOfCars = carsCollector.Collect()
         self.assertGreater(numberOfCars, 0)
         self.assertLess(numberOfCars, numberOfLinks)
         self.assertEqual(carsCollector.db.countRecordsInTable("cars_car"), numberOfCars)
+
+    def testCombinedCollectors(self):
+        collector = CarDataCollector(self.combinedDBname)
+        collector.Collect(brandsLimit=20, linksLimit=100, howManyCycles=1)
+
+        self.assertTrue(collector.db.valueIsPresentInColumnOfATable("Rover", "brandname", "cars_brand"))
+        self.assertTrue(collector.db.valueIsPresentInColumnOfATable("Honda", "brandname", "cars_brand"))
+        self.assertTrue(collector.db.valueIsPresentInColumnOfATable("Mercury", "brandname", "cars_brand"))
+
+        self.assertGreater(collector.db.countRecordsInTable("cars_brand"), 20)
+        self.assertGreater(collector.db.countRecordsInTable("links"), 100)
+        self.assertGreater(collector.db.countRecordsInTable("invalidlinks"), 0)
+        self.assertGreater(collector.db.countRecordsInTable("cars_car"), 100)
+
+        self.assertEqual(collector.db.countRecordsInTable("collectcycle"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

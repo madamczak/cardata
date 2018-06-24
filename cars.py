@@ -86,6 +86,8 @@ class CarDataCollector(object):
         #todo: unit test if return does not make a mistake (+/- 1)
         return counter - startAmountOfBrands
 
+
+
     def _getNewLinksFromCategorySite(self, categoryTuple):
         methodName = inspect.stack()[0][3]
         moduleLogger.info("%s - %s - Working on category with id: %s, link: %s." %
@@ -460,18 +462,24 @@ class CarDataCollector(object):
         self.db.insertStringData("collectcycle", dbmsg)
         return carsStartTime, newBrands, newLinks, newCars, endTime
 
-    def _logEndCycleMessage(self, startTime, newBrands, newLinks, newCars, endTime):
+    def _logEndCycleMessage(self, startTime, newBrands, newLinks, newCars, endTime, cycleNumber):
         message = '\nStarted: %s\n' % startTime
         message += "New Brands: %d\nNew Links:  %d\nNew Cars:   %d\n" % (newBrands, newLinks, newCars)
-        message += "End date: %s" % endTime
+        message += "End date: %s\n" % endTime
+        message += "Cycle number: %d" % cycleNumber
         moduleLogger.info("%s" % message)
 
-    def collect(self, brandsLimit=2000, linksLimit=100000, carslimit=200000, reversed=False):
+    def Collect(self, brandsLimit=2000, linksLimit=100000, carslimit=200000, reversed=False, howManyCycles=None):
         methodName = inspect.stack()[0][3]
 
         moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
         CarDataCollector.constructDBTables(self.db)
+
+        whileLoopCounter = 0
         while True:
+            if howManyCycles is not None and whileLoopCounter >= howManyCycles:
+                break
+
             if not reversed:
                 startTime, newBrands, newLinks, newCars, endTime = \
                     self._collectNormal(brandsLimit, linksLimit, carslimit)
@@ -482,7 +490,10 @@ class CarDataCollector(object):
             # clean old links from db
             self.db.clearParsedLinks()
 
-            self._logEndCycleMessage(startTime, newBrands, newLinks, newCars, endTime)
+            self._logEndCycleMessage(startTime, newBrands, newLinks, newCars, endTime, whileLoopCounter)
+            whileLoopCounter += 1
+
+        moduleLogger.info('%s - End of collection.' % methodName)
 
 
 if __name__ == "__main__":
@@ -501,8 +512,7 @@ if __name__ == "__main__":
     parser.add_argument("--reversed", required=False, action='store_true',
                         help='Start with parsing stored links insead of collecting new links.')
 
-
     args = parser.parse_args()
     collector = CarDataCollector(args.database_name[0])
-    collector.collect(args.brands_limit, args.links_limit, args.cars_limit, args.reversed)
+    collector.Collect(args.brands_limit, args.links_limit, args.cars_limit, args.reversed)
 
