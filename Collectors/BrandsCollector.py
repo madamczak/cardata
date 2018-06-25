@@ -14,41 +14,27 @@ class BrandsCollector(object):
         self.db = database
 
     def _addNewBrandCategory(self, item, count):
-        # todo: create method that verifies if brand/model/version is present in db
-        methodName = inspect.stack()[0][3]
-
-        if not self.db.valueIsPresentInColumnOfATable(item[1], 'link', "cars_brand") \
-                and not self.db.valueIsPresentInColumnOfATable(item[0], 'brandname', "cars_brand"):
-            s = """%d, "%s", NULL, NULL, "%s" """ % (count, item[0], item[1])
-            moduleLogger.debug("%s - New brand found: %s." % (methodName, s))
-            self.db.insertStringData("cars_brand", s)
+        if not self.db.brandLinkIsPresentInDatabase(item[1]) and not self.db.brandNameIsPresentInDatabase(item[0]):
+            self.db.insertBrandToDatabase(count, item[0], item[1])
             return 1
         else:
             return 0
 
     def _addNewModelCategory(self, item, model, count):
-        methodName = inspect.stack()[0][3]
-
-        if not self.db.valueIsPresentInColumnOfATable(model[1], 'link', "cars_brand") \
-                and not self.db.valueIsPresentInColumnOfATable(model[0], 'modelname', "cars_brand"):
-            s = """%d, "%s", "%s", NULL, "%s" """ % (count, item[0], model[0], model[1])
-            moduleLogger.debug("%s - New model found: %s." % (methodName, s))
-            self.db.insertStringData("cars_brand", s)
+        if not self.db.brandLinkIsPresentInDatabase(model[1]) and not self.db.modelNameIsPresentInDatabase(model[0]):
+            self.db.insertModelToDatabase(count, item[0], model[0], model[1])
             return 1
         else:
             return 0
 
     def _addNewVersionCategory(self, item, model, ver, count):
-        methodName = inspect.stack()[0][3]
         versionName = DataCleaning.normalize(ver[0])
         pattern1 = re.compile(".*\(\d+-")
         pattern2 = re.compile(".*T\d")
 
-        if not self.db.valueIsPresentInColumnOfATable(ver[1], 'link', "cars_brand") \
+        if not self.db.brandLinkIsPresentInDatabase(ver[1]) \
                 and (pattern1.match(str(versionName)) or pattern2.match(str(versionName))):
-            s = """%d, "%s", "%s", "%s", "%s" """ % (count, item[0], model[0], ver[0], ver[1])
-            moduleLogger.debug("%s - New version found: %s." % (methodName, s))
-            self.db.insertStringData("cars_brand", s)
+            self.db.insertVersionToDatabase(count, item[0], model[0], ver[0], ver[1])
             return 1
         else:
             return 0

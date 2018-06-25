@@ -42,6 +42,32 @@ class DataBase(object):
         self.conn.commit()
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
+    def insertLinkToDatabase(self, linkId, brandId, link):
+        moduleLogger.debug("Inserting link: %s." % link)
+        s = """ %d, %d, "%s", "%s", "%r" """ % (linkId, brandId, str(datetime.datetime.now()), link, False)
+        self.insertStringData("links", s)
+
+    def insertInvalidLinkToDatabase(self, linkId, link):
+        moduleLogger.debug("Inserting invalid link: %s." % link)
+        s = """ "%d", "%s", "%s" """ % (linkId, str(datetime.datetime.now()), link)
+        self.insertStringData("invalidlinks", s)
+
+    def insertBrandToDatabase(self, brandId, brandName, link):
+        moduleLogger.debug("Inserting brand: %s." % brandName)
+        s = """%d, "%s", NULL, NULL, "%s" """ % (brandId, brandName, link)
+        self.insertStringData("cars_brand", s)
+
+    def insertModelToDatabase(self, brandId, brandName, modelName, link):
+        moduleLogger.debug("Inserting model: %s - %s." % (brandName, modelName))
+        s = """%d, "%s", "%s", NULL, "%s" """ % (brandId, brandName, modelName, link)
+        self.insertStringData("cars_brand", s)
+
+    def insertVersionToDatabase(self, brandId, brandName, modelName, versionName, link):
+        s = """%d, "%s", "%s", "%s", "%s" """ % (brandId, brandName, modelName, versionName, link)
+        moduleLogger.debug("Inserting version: %s - %s - %s." % (brandName, modelName, versionName))
+        self.insertStringData("cars_brand", s)
+
+
     def readAllDataGenerator(self, tableName, amount=2000, where=""):
         conn = sqlite3.connect(self.dbName)
         cursor = self.conn.cursor()
@@ -225,7 +251,7 @@ class DataBase(object):
                             (methodName, len(cars), modelName, versionName))
         return cars
 
-    def valueIsPresentInColumnOfATable(self, value, column, table):
+    def _valueIsPresentInColumnOfATable(self, value, column, table):
         methodName = inspect.stack()[0][3]
 
         command = """SELECT 1 FROM %s WHERE "%s" = "%s" """ % (table, column, value)
@@ -245,6 +271,24 @@ class DataBase(object):
             moduleLogger.debug("%s - Value: %s is NOT present in table: %s." % (methodName, value, table))
 
         return valueIsPresentInDb
+
+    def linkIsPresentInDatabase(self, link):
+        return self._valueIsPresentInColumnOfATable(link, "link", "links")
+
+    def thereAreParsedLinksInTheTable(self):
+        return self._valueIsPresentInColumnOfATable("True", "parsed", "links")
+
+    def brandLinkIsPresentInDatabase(self, link):
+        return self._valueIsPresentInColumnOfATable(link, 'link', "cars_brand")
+
+    def brandNameIsPresentInDatabase(self, brandName):
+        return self._valueIsPresentInColumnOfATable(brandName, 'brandname', "cars_brand")
+
+    def modelNameIsPresentInDatabase(self, modelName):
+        return self._valueIsPresentInColumnOfATable(modelName, 'modelname', "cars_brand")
+
+    def versionIsPresentInDatabase(self, version):
+        return self._valueIsPresentInColumnOfATable(version, 'version', "cars_brand")
 
     def countRecordsInTable(self, tableName):
         command = "SELECT count(*) FROM %s" % tableName

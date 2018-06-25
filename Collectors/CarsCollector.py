@@ -186,11 +186,7 @@ class CarsCollector(object):
             self.db.insertStringData("cars_car", s)
             return 1
         else:
-            moduleLogger.debug(
-                "%s - Verified negatively. Will be inserted in InvalidLinks table." % methodName)
-            s = """ "%d", "%s", "%s", "True" """ % (allegroLinkTuple[0], str(datetime.datetime.now()), allegroLinkTuple[3])
-            # todo: create insert invalid link method
-            self.db.insertStringData("invalidlinks", s)
+            self.db.insertInvalidLinkToDatabase(allegroLinkTuple[0], allegroLinkTuple[3])
             return 0
 
     def _parseOtomotoLink(self, otomotoLinkTuple):
@@ -206,10 +202,7 @@ class CarsCollector(object):
             self.db.insertStringData("cars_car", s)
             return 1
         else:
-            moduleLogger.debug(
-                "%s - Verified negatively. Will be inserted in InvalidLinks table." % methodName)
-            s = """ "%d", "%s", "%s", "True" """ % (otomotoLinkTuple[0], str(datetime.datetime.now()), otomotoLinkTuple[3])
-            self.db.insertStringData("invalidlinks", s)
+            self.db.insertInvalidLinkToDatabase(otomotoLinkTuple[0], otomotoLinkTuple[3])
             return 0
 
 

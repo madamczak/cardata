@@ -22,10 +22,14 @@ class SeparateCollectorsTest(unittest.TestCase):
     def testSeparateCollectors(self):
         brandsCollector = BrandsCollector(self.database)
         numberOfBrands, brandsStartTime = brandsCollector.Collect(limit=20)
-        self.assertTrue(brandsCollector.db.valueIsPresentInColumnOfATable("Rover", "brandname", "cars_brand"))
-        self.assertTrue(brandsCollector.db.valueIsPresentInColumnOfATable("Honda", "brandname", "cars_brand"))
-        self.assertTrue(brandsCollector.db.valueIsPresentInColumnOfATable("Mercury", "brandname", "cars_brand"))
-        self.assertLess((datetime.datetime.now() - brandsStartTime).total_seconds(), 240)
+        self.assertTrue(brandsCollector.db.brandNameIsPresentInDatabase("Rover"))
+        self.assertTrue(brandsCollector.db.brandNameIsPresentInDatabase("Honda"))
+        self.assertTrue(brandsCollector.db.brandNameIsPresentInDatabase("Mercury"))
+        self.assertTrue(brandsCollector.db.modelNameIsPresentInDatabase("Accord"))
+        self.assertTrue(brandsCollector.db.modelNameIsPresentInDatabase("Civic"))
+        self.assertTrue(brandsCollector.db.modelNameIsPresentInDatabase("75"))
+        self.assertTrue(brandsCollector.db.versionIsPresentInDatabase("V (1993-1998)"))
+        self.assertLess((datetime.datetime.now() - brandsStartTime).total_seconds(), 500)
 
         #todo: inconsistency between brands limit and number of brands collected (models and version counted as brands)
         self.assertGreater(numberOfBrands, 20)
@@ -34,17 +38,17 @@ class SeparateCollectorsTest(unittest.TestCase):
         self.assertEqual(brandsCollector.db.countRecordsInTable("cars_brand"), numberOfBrands)
         linksCollector = LinksCollector(self.database)
         numberOfLinks, linksStartTime = linksCollector.Collect(limit=100)
-        self.assertFalse(linksCollector.db.valueIsPresentInColumnOfATable("True", "parsed", "links"))
+        self.assertFalse(linksCollector.db.thereAreParsedLinksInTheTable())
         self.assertGreater(numberOfLinks, 100)
         self.assertEqual(linksCollector.db.countRecordsInTable("links"), numberOfLinks)
-        self.assertLess((datetime.datetime.now() - linksStartTime).total_seconds(), 240)
+        self.assertLess((datetime.datetime.now() - linksStartTime).total_seconds(), 500)
 
         carsCollector = CarsCollector(self.database)
         numberOfCars, carsStartTime = carsCollector.Collect()
         self.assertGreater(numberOfCars, 0)
         self.assertLess(numberOfCars, numberOfLinks)
         self.assertEqual(carsCollector.db.countRecordsInTable("cars_car"), numberOfCars)
-        self.assertLess((datetime.datetime.now() - carsStartTime).total_seconds(), 480)
+        self.assertLess((datetime.datetime.now() - carsStartTime).total_seconds(), 900)
 
 class CombinedCollectorsTest(unittest.TestCase):
     def setUp(self):
@@ -61,14 +65,18 @@ class CombinedCollectorsTest(unittest.TestCase):
         collector = CarDataCollector(self.combinedDBname)
         collector.Collect(brandsLimit=20, linksLimit=100, howManyCycles=1)
 
-        self.assertTrue(collector.db.valueIsPresentInColumnOfATable("Rover", "brandname", "cars_brand"))
-        self.assertTrue(collector.db.valueIsPresentInColumnOfATable("Honda", "brandname", "cars_brand"))
-        self.assertTrue(collector.db.valueIsPresentInColumnOfATable("Mercury", "brandname", "cars_brand"))
+        self.assertTrue(collector.db.brandNameIsPresentInDatabase("Rover"))
+        self.assertTrue(collector.db.brandNameIsPresentInDatabase("Honda"))
+        self.assertTrue(collector.db.brandNameIsPresentInDatabase("Mercury"))
+        self.assertTrue(collector.db.modelNameIsPresentInDatabase("Accord"))
+        self.assertTrue(collector.db.modelNameIsPresentInDatabase("Civic"))
+        self.assertTrue(collector.db.modelNameIsPresentInDatabase("75"))
+        self.assertTrue(collector.db.versionIsPresentInDatabase("V (1993-1998)"))
 
         self.assertGreater(collector.db.countRecordsInTable("cars_brand"), 20)
         self.assertGreater(collector.db.countRecordsInTable("links"), 100)
         self.assertGreater(collector.db.countRecordsInTable("invalidlinks"), 0)
-        self.assertGreater(collector.db.countRecordsInTable("cars_car"), 100)
+        self.assertGreater(collector.db.countRecordsInTable("cars_car"), 50)
 
         self.assertEqual(collector.db.countRecordsInTable("collectcycle"), 1)
 

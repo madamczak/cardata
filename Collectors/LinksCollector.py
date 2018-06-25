@@ -19,20 +19,15 @@ class LinksCollector(object):
                            categoryTuple[0], categoryTuple[4]))
 
         return [str(link) for link in URLOperations.getLinksFromCategorySite(categoryTuple[4])
-                if not self.db.valueIsPresentInColumnOfATable(str(link), 'link', "links")]
+                if not self.db.linkIsPresentInDatabase(str(link))]
 
+    # todo: As a separate method - think about inserting links from entire list instead of inserting each one by one
     def _insertLinksFromCategoryToDatabase(self, categoryTuple, links):
         methodName = inspect.stack()[0][3]
         counter = self.db.getMaxFromColumnInTable("l_id", "links") + 1
 
         for link in links:
-            moduleLogger.debug("%s - Inserting link: %s to Links table." % (methodName, link))
-            s = """ %d, %d, "%s", "%s", "%r" """ % \
-                (counter, categoryTuple[0], str(datetime.datetime.now()), link, False)
-
-            #todo: think about inserting links from entire list instead of inserting each one by one
-            #todo: method to insert a link
-            self.db.insertStringData("links", s)
+            self.db.insertLinkToDatabase(counter, categoryTuple[0], link)
             counter += 1
 
         if links:
