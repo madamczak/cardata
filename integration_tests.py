@@ -4,6 +4,8 @@ from Collectors.BrandsCollector import BrandsCollector
 from Collectors.LinksCollector import LinksCollector
 from Collectors.CarsCollector import CarsCollector
 from cars import CarDataCollector
+from unit_tests import *
+import time
 
 class SeparateCollectorsTest(unittest.TestCase):
     def setUp(self):
@@ -13,7 +15,7 @@ class SeparateCollectorsTest(unittest.TestCase):
             os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname))
 
         self.database = DataBase(self.separateDBname)
-        CarDataCollector.constructDBTables(self.database)
+        self.database.constructDBTables()
 
     def tearDown(self):
         del self.database
@@ -44,10 +46,14 @@ class SeparateCollectorsTest(unittest.TestCase):
         self.assertLess((datetime.datetime.now() - linksStartTime).total_seconds(), 500)
 
         carsCollector = CarsCollector(self.database)
+        before = time.time()
         numberOfCars, carsStartTime = carsCollector.Collect()
         self.assertGreater(numberOfCars, 0)
         self.assertLess(numberOfCars, numberOfLinks)
         self.assertEqual(carsCollector.db.countRecordsInTable("cars_car"), numberOfCars)
+
+        self.assertTrue(carsCollector.db.thereAreOnlyParsedLinksInTheTable())
+
         self.assertLess((datetime.datetime.now() - carsStartTime).total_seconds(), 900)
 
 class CombinedCollectorsTest(unittest.TestCase):
@@ -77,6 +83,8 @@ class CombinedCollectorsTest(unittest.TestCase):
         self.assertGreater(collector.db.countRecordsInTable("links"), 100)
         self.assertGreater(collector.db.countRecordsInTable("invalidlinks"), 0)
         self.assertGreater(collector.db.countRecordsInTable("cars_car"), 50)
+
+        self.assertTrue(collector.db.thereAreOnlyParsedLinksInTheTable())
 
         self.assertEqual(collector.db.countRecordsInTable("collectcycle"), 1)
 

@@ -422,7 +422,7 @@ class DataBaseOpsUsage(unittest.TestCase):
 
         self.assertEquals(len(allLinks), 0)
         testDB.executeSqlCommand("""UPDATE Links SET parsed = "False" """)
-        self.assertFalse(testDB.valueIsPresentInColumnOfATable('True', "parsed", "Links"))
+        self.assertTrue(testDB.thereAreOnlyUnparsedLinksInTheTable())
 
         allLinks = []
 
@@ -431,7 +431,7 @@ class DataBaseOpsUsage(unittest.TestCase):
 
         self.assertEquals(len(allLinks), 15)
         testDB.executeSqlCommand("""UPDATE Links SET parsed = "True" """)
-        self.assertFalse(testDB.valueIsPresentInColumnOfATable('False', "parsed", "Links"))
+        self.assertFalse(testDB.thereAreOnlyUnparsedLinksInTheTable())
 
 
     def test_db_read_all_data(self):
@@ -443,11 +443,10 @@ class DataBaseOpsUsage(unittest.TestCase):
         self.assertEquals(len(allLinks), 15)
 
     def test_db_execute_custom_command(self):
-        self.assertFalse(testDB.valueIsPresentInColumnOfATable('False', "parsed", "Links"))
         testDB.executeSqlCommand("""UPDATE Links SET parsed = "False" """)
-        self.assertFalse(testDB.valueIsPresentInColumnOfATable('True', "parsed", "Links"))
+        self.assertTrue(testDB.thereAreOnlyUnparsedLinksInTheTable())
         testDB.executeSqlCommand("""UPDATE Links SET parsed = "True" """)
-        self.assertFalse(testDB.valueIsPresentInColumnOfATable('False', "parsed", "Links"))
+        self.assertTrue(testDB.thereAreOnlyParsedLinksInTheTable())
 
     def test_db_get_all_ids_of_particular_brand(self):
         ids = testDB.getAllBrandIdsOfBrand("Honda")

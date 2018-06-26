@@ -1,10 +1,5 @@
-import re
-
-from OperationUtils.data_operations import DataCleaning
-from OperationUtils.url_operations import URLOperations
 from OperationUtils.db_operations import DataBase
-import time
-from collections import OrderedDict
+
 import datetime
 import inspect
 
@@ -19,70 +14,22 @@ class CarDataCollector(object):
     def __init__(self, databaseName):
         self.db = DataBase(databaseName)
 
-    @staticmethod
-    def constructDBTables(db):
-        brandsDict = OrderedDict(
-            [('b_id', "INT"), ('brandname', "TEXT"), ('modelname', "TEXT"), ('version', "TEXT"), ('link', "TEXT")])
-        linksDict = OrderedDict(
-            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')])
-        oldLinksDict = OrderedDict(
-            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')])
-        InvalidLinksDict = OrderedDict([('l_id', "INT"), ('time', "TEXT"), ('link', "TEXT")])
-        carDataDict = OrderedDict(
-            [('b_id', "INT"), ('l_id', "INT"), ('year', "INT"), ('mileage', "INT"), ('power', "INT"),
-             ('capacity', "INT"), ('fuel', "TEXT"), ('color', "TEXT"), ('usedornew', "TEXT"),
-             ('doors', "TEXT"), ('gearbox', "TEXT"), ('price', "INT"), ('time', "TEXT")])
-        CycleDict = OrderedDict([('start_brands', "TEXT"), ('start_links', "TEXT"), ('start_cars', "TEXT"),
-                                 ('end_time', "TEXT"), ('new_brands', "INT"), ('new_links', "INT"),
-                                 ('new_cars', "INT")])
-
-        db.createTable('cars_brand', brandsDict)
-        db.createTable('links', linksDict)
-        db.createTable('oldlinks', oldLinksDict)
-        db.createTable('cars_car', carDataDict)
-        db.createTable('invalidlinks', InvalidLinksDict)
-        db.createTable('collectcycle', CycleDict)
-
     def _collectNormal(self, brandsLimit=2000, linksLimit=100000, carslimit=200000):
-        # start brands
         newBrands, brandsStartTime = BrandsCollector(self.db).Collect(limit=brandsLimit)
-        dbmsg = """ "%s",  """ % str(brandsStartTime)
-
-        # start links
         newLinks, linksStartTime = LinksCollector(self.db).Collect(limit=linksLimit)
-        dbmsg += """ "%s", """ % str(linksStartTime)
-
-        # start cars
         newCars, carsStartTime = CarsCollector(self.db).Collect(limit=carslimit)
-        dbmsg += """ "%s", """ % str(carsStartTime)
-
-        # end time
         endTime = str(datetime.datetime.now())
-        dbmsg += """ "%s", """ % endTime
-        dbmsg += "%d, %d, %d" % (newBrands, newLinks, newCars)
-
-        self.db.insertStringData("collectcycle", dbmsg)
+        self.db.insertCollectCycleToDatabase(brandsStartTime, linksStartTime, carsStartTime,
+                                             endTime, newBrands, newLinks, newCars)
         return brandsStartTime, newBrands, newLinks, newCars, endTime
 
     def _collectReversed(self, brandsLimit=2000, linksLimit=100000, carslimit=200000):
-        # start cars
         newCars, carsStartTime = CarsCollector(self.db).Collect(limit=carslimit)
-        dbmsg = """ "%s", """ % str(carsStartTime)
-
-        # start brands
         newBrands, brandsStartTime = BrandsCollector(self.db).Collect(limit=brandsLimit)
-        dbmsg += """ "%s",  """ % str(brandsStartTime)
-
-        # start links
         newLinks, linksStartTime = LinksCollector(self.db).Collect(limit=linksLimit)
-        dbmsg += """ "%s", """ % str(linksStartTime)
-
-        # end time
         endTime = str(datetime.datetime.now())
-        dbmsg += """ "%s", """ % endTime
-        dbmsg += "%d, %d, %d" % (newBrands, newLinks, newCars)
-
-        self.db.insertStringData("collectcycle", dbmsg)
+        self.db.insertCollectCycleToDatabase(brandsStartTime, linksStartTime, carsStartTime,
+                                             endTime, newBrands, newLinks, newCars)
         return carsStartTime, newBrands, newLinks, newCars, endTime
 
     def _logEndCycleMessage(self, startTime, newBrands, newLinks, newCars, endTime, cycleNumber):
@@ -96,7 +43,7 @@ class CarDataCollector(object):
         methodName = inspect.stack()[0][3]
 
         moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
-        CarDataCollector.constructDBTables(self.db)
+        self.db.constructDBTables()
 
         whileLoopCounter = 0
         while True:

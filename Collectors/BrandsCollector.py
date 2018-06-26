@@ -2,7 +2,6 @@ import re, datetime
 
 from OperationUtils.data_operations import DataCleaning
 from OperationUtils.url_operations import URLOperations
-from OperationUtils.db_operations import DataBase
 import inspect
 from OperationUtils.logger import Logger
 
@@ -45,7 +44,7 @@ class BrandsCollector(object):
     def Collect(self, limit=2000):
         methodName = inspect.stack()[0][3]
 
-        startAmountOfBrands = self.db.getMaxFromColumnInTable("b_id", "cars_brand")
+        startAmountOfBrands = self.db.getAmountOfBrands()
         counter = startAmountOfBrands + 1
         moduleLogger.debug("%s - Current number of brands: %d." % (methodName, counter - 1))
         startTime = datetime.datetime.now()

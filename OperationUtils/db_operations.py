@@ -1,10 +1,11 @@
 import sqlite3
-
+from OperationUtils.car_verification_utils import CarVerificationUtils
 from OperationUtils.data_operations import DataCleaning
 from OperationUtils.logger import Logger
 import inspect
 import datetime
 import time
+from collections import OrderedDict
 
 
 moduleLogger = Logger.setLogger("dbops")
@@ -20,6 +21,29 @@ class DataBase(object):
         self.c.close()
         self.conn.close()
         moduleLogger.info("Connection to db is closed.")
+
+    def constructDBTables(self):
+        brandsDict = OrderedDict(
+            [('b_id', "INT"), ('brandname', "TEXT"), ('modelname', "TEXT"), ('version', "TEXT"), ('link', "TEXT")])
+        linksDict = OrderedDict(
+            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')])
+        oldLinksDict = OrderedDict(
+            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')])
+        InvalidLinksDict = OrderedDict([('l_id', "INT"), ('time', "TEXT"), ('link', "TEXT")])
+        carDataDict = OrderedDict(
+            [('b_id', "INT"), ('l_id', "INT"), ('year', "INT"), ('mileage', "INT"), ('power', "INT"),
+             ('capacity', "INT"), ('fuel', "TEXT"), ('color', "TEXT"), ('usedornew', "TEXT"),
+             ('doors', "TEXT"), ('gearbox', "TEXT"), ('price', "INT"), ('time', "TEXT")])
+        CycleDict = OrderedDict([('start_brands', "TEXT"), ('start_links', "TEXT"), ('start_cars', "TEXT"),
+                                 ('end_time', "TEXT"), ('new_brands', "INT"), ('new_links', "INT"),
+                                 ('new_cars', "INT")])
+
+        self.createTable('cars_brand', brandsDict)
+        self.createTable('links', linksDict)
+        self.createTable('oldlinks', oldLinksDict)
+        self.createTable('cars_car', carDataDict)
+        self.createTable('invalidlinks', InvalidLinksDict)
+        self.createTable('collectcycle', CycleDict)
 
     def createTable(self, name, columnDict):
         methodName = inspect.stack()[0][3]
@@ -67,6 +91,30 @@ class DataBase(object):
         moduleLogger.debug("Inserting version: %s - %s - %s." % (brandName, modelName, versionName))
         self.insertStringData("cars_brand", s)
 
+    def insertAllegroCarToDatabase(self, b_id, l_id, carDict):
+        verificator = CarVerificationUtils()
+        s = verificator.constructAllegroCarInsert(b_id, l_id, carDict)
+        self.insertStringData("cars_car", s)
+
+    def insertOtomotoCarToDatabase(self, b_id, l_id, carDict):
+        verificator = CarVerificationUtils()
+        s = verificator.constructOtomotoCarInsert(b_id, l_id, carDict)
+        self.insertStringData("cars_car", s)
+
+    def insertCollectCycleToDatabase(self, brandsStartTime, linksStartTime, carsStartTime,
+                                     endTime, newBrands, newLinks, newCars):
+        dbmsg = """ "%s", "%s", "%s", "%s", %d, %d, %d""" % \
+                (str(brandsStartTime), str(linksStartTime), str(carsStartTime),
+                 str(endTime), newBrands, newLinks, newCars)
+        self.insertStringData("collectcycle", dbmsg)
+
+    def getAmountOfBrands(self):
+        return self.getMaxFromColumnInTable("b_id", "cars_brand")
+
+    def getAmountOfLinks(self):
+        return self.getMaxFromColumnInTable("l_id", "links")
+
+
 
     def readAllDataGenerator(self, tableName, amount=2000, where=""):
         conn = sqlite3.connect(self.dbName)
@@ -91,6 +139,12 @@ class DataBase(object):
             counter += 1
             for row in rows:
                 yield row
+
+    def readAllUnparsedLinks(self):
+        return self.readAllDataGenerator('links', where='WHERE parsed = "False"')
+
+    def readAllBrands(self):
+        return self.readAllDataGenerator('cars_brand')
 
     # this is obsolete, use readAllDataGenerator
     def readAllData(self, tableName):
@@ -278,6 +332,12 @@ class DataBase(object):
     def thereAreParsedLinksInTheTable(self):
         return self._valueIsPresentInColumnOfATable("True", "parsed", "links")
 
+    def thereAreOnlyParsedLinksInTheTable(self):
+        return not self._valueIsPresentInColumnOfATable("False", "parsed", "links")
+
+    def thereAreOnlyUnparsedLinksInTheTable(self):
+        return not self._valueIsPresentInColumnOfATable("True", "parsed", "links")
+
     def brandLinkIsPresentInDatabase(self, link):
         return self._valueIsPresentInColumnOfATable(link, 'link', "cars_brand")
 
@@ -323,6 +383,14 @@ class DataBase(object):
 
     #TODO: Unit tests, calculate how many links were transfered and return it
     def clearParsedLinks(self):
-
         self.executeSqlCommand("INSERT INTO oldlinks SELECT * FROM links WHERE time < '%s'" %
                                str(datetime.datetime.now() - datetime.timedelta(30)))
+
+    def updateParsedParameterForLinkWithId(self, linkId):
+        self.executeSqlCommand("""UPDATE links SET parsed = "True" WHERE l_id = "%d" """ % linkId)
+
+    def updateParsedParametersForMultipleLinkIds(self, listOfLinkIds):
+        for l_id in listOfLinkIds:
+            command = """UPDATE links SET parsed = "True" WHERE l_id = "%d" """ % l_id
+            self.c.execute(command)
+        self.conn.commit()

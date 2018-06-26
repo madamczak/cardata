@@ -1,6 +1,4 @@
 from OperationUtils.url_operations import URLOperations
-from OperationUtils.db_operations import DataBase
-
 import datetime
 import inspect
 
@@ -24,7 +22,7 @@ class LinksCollector(object):
     # todo: As a separate method - think about inserting links from entire list instead of inserting each one by one
     def _insertLinksFromCategoryToDatabase(self, categoryTuple, links):
         methodName = inspect.stack()[0][3]
-        counter = self.db.getMaxFromColumnInTable("l_id", "links") + 1
+        counter = self.db.getAmountOfLinks() + 1
 
         for link in links:
             self.db.insertLinkToDatabase(counter, categoryTuple[0], link)
@@ -42,7 +40,7 @@ class LinksCollector(object):
         numberOfNewLinks = 0
 
         startTime = datetime.datetime.now()
-        for cat in self.db.readAllDataGenerator('cars_brand'):
+        for cat in self.db.readAllBrands():
             if numberOfNewLinks > limit:
                 moduleLogger.info("%s - Collected more links than specified limit - %d." % (methodName, limit))
                 break
