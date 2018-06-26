@@ -57,7 +57,7 @@ class DataBase(object):
         self.c.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
-    def insertStringData(self, tableName, stringData):
+    def _insertStringData(self, tableName, stringData):
         methodName = inspect.stack()[0][3]
 
         command = "INSERT INTO %s VALUES(%s)" % (tableName, stringData)
@@ -69,52 +69,50 @@ class DataBase(object):
     def insertLinkToDatabase(self, linkId, brandId, link):
         moduleLogger.debug("Inserting link: %s." % link)
         s = """ %d, %d, "%s", "%s", "%r" """ % (linkId, brandId, str(datetime.datetime.now()), link, False)
-        self.insertStringData("links", s)
+        self._insertStringData("links", s)
 
     def insertInvalidLinkToDatabase(self, linkId, link):
         moduleLogger.debug("Inserting invalid link: %s." % link)
         s = """ "%d", "%s", "%s" """ % (linkId, str(datetime.datetime.now()), link)
-        self.insertStringData("invalidlinks", s)
+        self._insertStringData("invalidlinks", s)
 
     def insertBrandToDatabase(self, brandId, brandName, link):
         moduleLogger.debug("Inserting brand: %s." % brandName)
         s = """%d, "%s", NULL, NULL, "%s" """ % (brandId, brandName, link)
-        self.insertStringData("cars_brand", s)
+        self._insertStringData("cars_brand", s)
 
     def insertModelToDatabase(self, brandId, brandName, modelName, link):
         moduleLogger.debug("Inserting model: %s - %s." % (brandName, modelName))
         s = """%d, "%s", "%s", NULL, "%s" """ % (brandId, brandName, modelName, link)
-        self.insertStringData("cars_brand", s)
+        self._insertStringData("cars_brand", s)
 
     def insertVersionToDatabase(self, brandId, brandName, modelName, versionName, link):
         s = """%d, "%s", "%s", "%s", "%s" """ % (brandId, brandName, modelName, versionName, link)
         moduleLogger.debug("Inserting version: %s - %s - %s." % (brandName, modelName, versionName))
-        self.insertStringData("cars_brand", s)
+        self._insertStringData("cars_brand", s)
 
     def insertAllegroCarToDatabase(self, b_id, l_id, carDict):
         verificator = CarVerificationUtils()
         s = verificator.constructAllegroCarInsert(b_id, l_id, carDict)
-        self.insertStringData("cars_car", s)
+        self._insertStringData("cars_car", s)
 
     def insertOtomotoCarToDatabase(self, b_id, l_id, carDict):
         verificator = CarVerificationUtils()
         s = verificator.constructOtomotoCarInsert(b_id, l_id, carDict)
-        self.insertStringData("cars_car", s)
+        self._insertStringData("cars_car", s)
 
     def insertCollectCycleToDatabase(self, brandsStartTime, linksStartTime, carsStartTime,
                                      endTime, newBrands, newLinks, newCars):
         dbmsg = """ "%s", "%s", "%s", "%s", %d, %d, %d""" % \
                 (str(brandsStartTime), str(linksStartTime), str(carsStartTime),
                  str(endTime), newBrands, newLinks, newCars)
-        self.insertStringData("collectcycle", dbmsg)
+        self._insertStringData("collectcycle", dbmsg)
 
     def getAmountOfBrands(self):
         return self.getMaxFromColumnInTable("b_id", "cars_brand")
 
     def getAmountOfLinks(self):
         return self.getMaxFromColumnInTable("l_id", "links")
-
-
 
     def readAllDataGenerator(self, tableName, amount=2000, where=""):
         conn = sqlite3.connect(self.dbName)
@@ -388,9 +386,3 @@ class DataBase(object):
 
     def updateParsedParameterForLinkWithId(self, linkId):
         self.executeSqlCommand("""UPDATE links SET parsed = "True" WHERE l_id = "%d" """ % linkId)
-
-    def updateParsedParametersForMultipleLinkIds(self, listOfLinkIds):
-        for l_id in listOfLinkIds:
-            command = """UPDATE links SET parsed = "True" WHERE l_id = "%d" """ % l_id
-            self.c.execute(command)
-        self.conn.commit()
