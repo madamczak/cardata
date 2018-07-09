@@ -102,10 +102,10 @@ class CarVerificationUtils(object):
 
         moduleLogger.debug("Car does not have %s parsed.\n Rest of dictionary: %s\n" % (param, msg))
 
-    # TODO refactor
+    # TODO refactor, testing
     def verifyDictionary(self, carDict):
         # verify keys
-        if carDict and len(carDict.keys()) < 15:
+        if carDict and len(carDict.keys()) >= 8:
             if carDict.get('cena') is not None and carDict.get('cena') == 0:
                 self.logDebugDict(carDict, "Price")
                 return False
@@ -139,23 +139,25 @@ class CarVerificationUtils(object):
                         return False
                 else:
                     return False
-
-                if carDict.get(self._getAllegroDictRegexKey("przebieg", carDict)) is not None:
-                    if carDict.get(self._getAllegroDictRegexKey("przebieg", carDict)) == 0:
+                mileage = self._getAllegroDictRegexKey("przebieg", carDict)
+                if mileage is not None:
+                    if mileage == 0:
                         self.logDebugDict(carDict, "Mileage")
                         return False
                 else:
                     return False
 
-                if carDict.get(self._getAllegroDictRegexKey("moc [km]:", carDict)) is not None:
-                    if carDict.get(self._getAllegroDictRegexKey("moc", carDict)) == 0:
+                power = self._getAllegroDictRegexKey("moc", carDict)
+                if power is not None:
+                    if power == 0:
                         self.logDebugDict(carDict, "power")
                         return False
                 else:
                     return False
 
-                if carDict.get(self._getAllegroDictRegexKey("pojemnosc silnika", carDict)) is not None:
-                    if carDict.get(self._getAllegroDictRegexKey("pojemnosc silnika", carDict)) == 0:
+                capacity = self._getAllegroDictRegexKey("pojemnosc silnika", carDict)
+                if capacity is not None:
+                    if capacity == 0:
                         self.logDebugDict(carDict, "capacity")
                         return False
                 else:

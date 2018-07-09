@@ -67,7 +67,7 @@ class URLOperations(object):
         soup = openLinkAndReturnSoup(url)
 
         try:
-            price = int(float(DataCleaning.stripDecimalValue(soup.findAll("div", { "class" : "price" })[0]['data-price'])))
+            price = int(float(DataCleaning.stripDecimalValue(soup.findAll("div", { "class" : "m-price" })[0]['data-price'])))
             return price
         except:
             methodName = inspect.stack()[0][3]
@@ -88,6 +88,7 @@ class URLOperations(object):
             return 0
 
     @staticmethod
+    #todo: test if a site has specific structure for that method
     def parseAllegroSite(url):
         methodName = inspect.stack()[0][3]
         keys = []
@@ -125,10 +126,16 @@ class URLOperations(object):
         else:
             moduleLogger.debug("%s - Allegro type 2 site." % methodName)
             #type 2 allegro site
-            lis = [li.findChildren('span') for li in soup.findChildren('li') if len(li.findChildren('span')) == 2]
+
+            lis = []
+            for li in soup.findChildren('li'):
+                if len(li.findChildren('div')) == 3:
+                    lis.append(li.findChildren('div'))
+            #lis = [li.findChildren('div') for li in soup.findChildren('li')]# if len(li.findChildren('span')) == 2]
+
             keys, vals = \
-                [DataCleaning.normalize(span[0].text) for span in lis],\
-                [DataCleaning.normalize(span[1].text) for span in lis]
+                [DataCleaning.normalize(span[1].text) for span in lis],\
+                [DataCleaning.normalize(span[2].text) for span in lis]
         if keys and vals:
             keys.append('cena')
             try:
@@ -277,13 +284,16 @@ class URLOperations(object):
         if soup is None:
             return {}
 
-        top = soup.find_all("section", { 'class' : 'category-tree__category-tree__3Mj66' })
+        top = soup.find_all("section", { 'class' : '_53938a6' })
 
         if len(top) == 1:
             liElements = top[0].findChildren("li")
             for li in liElements:
                 if len(li.findChildren("span")) != 0 and len(li.findChildren('a')) != 0:
-                    dictionary[li.findChildren("span")[0].text.strip()] = li.findChildren('a')[0]['href']
+                    a = li.findChildren("a")[0].text
+                    key = li.findChildren("a")[0].text.strip()
+                    val = "https://allegro.pl" + li.findChildren('a')[0]['href']
+                    dictionary[key] = val
         else:
             moduleLogger.debug("%s - Problems getting brands. There is no top parameter - 'section' tag." % methodName)
             return {}
@@ -314,7 +324,10 @@ class URLOperations(object):
                 address = url
 
             if startTimeParameter is not None:
-                address += "&startingTime=13" #get links only from last 2 weeks for performance reasons
+                if "?" in address:
+                    address += "&startingTime=13" #get links only from last 1 weeks for performance reasons
+                else:
+                    address += "?startingTime=13"
 
             try:
                 r = urllib.urlopen(address).read()

@@ -64,7 +64,6 @@ class CombinedCollectorsTest(unittest.TestCase):
             os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.combinedDBname))
 
     def tearDown(self):
-        pass
         os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.combinedDBname))
 
     def testCombinedCollectors(self):
