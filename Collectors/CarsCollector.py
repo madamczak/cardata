@@ -25,22 +25,6 @@ class CarsCollector(object):
             self.db.insertInvalidLinkToDatabase(allegroLinkTuple[0], allegroLinkTuple[3])
             return 0
 
-    def _parseOtomotoLink(self, otomotoLinkTuple):
-        methodName = inspect.stack()[0][3]
-        # todo: create one method for otomotoLinks
-        d = URLOperations.parseOtoMotoSite2(otomotoLinkTuple[3])
-        if not d:
-            d = URLOperations.parseOtoMotoSite(otomotoLinkTuple[3])
-
-        if self.verificator.verifyDictionary(d):
-            moduleLogger.debug("%s - Verified positively. Will be inserted in CarData table." % methodName)
-            self.db.insertOtomotoCarToDatabase(otomotoLinkTuple[1], otomotoLinkTuple[0], d)
-            return 1
-        else:
-            self.db.insertInvalidLinkToDatabase(otomotoLinkTuple[0], otomotoLinkTuple[3])
-            return 0
-
-
     def Collect(self, limit=300000):
         methodName = inspect.stack()[0][3]
 

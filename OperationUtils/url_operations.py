@@ -67,20 +67,11 @@ class URLOperations(object):
         soup = openLinkAndReturnSoup(url)
 
         try:
-            price = int(float(DataCleaning.stripDecimalValue(soup.findAll("div", { "class" : "m-price" })[0]['data-price'])))
-            return price
-        except:
-            methodName = inspect.stack()[0][3]
-            moduleLogger.error("%s - Problems getting price from url: %s." % (methodName, url))
-            return 0
-
-    @staticmethod
-    def getOtomotoPrice(url):
-        soup = openLinkAndReturnSoup(url)
-
-        try:
-            price = int(soup.findAll("span",
-                                 {"class": "offer-price__number" })[0].text.split('  ')[0].replace(' ', ''))
+            meta = soup.find_all("meta", {"itemprop" : "price"})
+            if meta:
+                price = int(float(DataCleaning.stripDecimalValue(meta[0]['content'])))
+            else:
+                price = int(float(DataCleaning.stripDecimalValue(soup.findAll("div", { "class" : "m-price" })[0]['data-price'])))
             return price
         except:
             methodName = inspect.stack()[0][3]
@@ -152,127 +143,6 @@ class URLOperations(object):
         else:
             return toRet
 
-    @staticmethod
-    def parseOtoMotoSite(url):
-        methodName = inspect.stack()[0][3]
-        keys = []
-        vals = []
-
-        soup = openLinkAndReturnSoup(url)
-        try:
-            tabele = soup.findChildren('ul')[6:10]
-        except:
-            moduleLogger.debug("%s - Unable to parse site: %s. "
-                               "Just at the beginning there was no 'ul' tag in the url." % (methodName, url))
-            return {}
-
-        for tabela in tabele:
-            for li in tabela.findChildren('li'):
-                for small, span in zip(li.findChildren('small'), li.findChildren('span')):
-                    keys.append(DataCleaning.normalize(small.text))
-
-                    value = DataCleaning.normalize(span.text)
-
-                    if value.isdigit():
-                        value = int(value)
-
-                    vals.append(value)
-
-        if keys and vals:
-            keys.append('cena')
-            vals.append(URLOperations.getOtomotoPrice(url))
-
-        toRet = dict(zip(keys, vals))
-        if all([val == "0" or val == "" for val in toRet.values()]):
-            moduleLogger.debug("%s - Unable to parse site: %s. "
-                               "Just at the beginning there was no 'ul' tag in the url." % (methodName, url))
-            return {}
-
-        else:
-            return toRet
-
-    @staticmethod
-    def parseOtoMotoSite2(url):
-        #TODO: Refactor this.
-        methodName = inspect.stack()[0][3]
-        d = {}
-
-        soup = openLinkAndReturnSoup(url)
-        try:
-            lis = soup.findChildren('li', {'class': 'offer-params__item'})
-        except:
-            moduleLogger.debug("%s - Unable to parse site: %s. "
-                               "Just at the beginning there was no 'li' tags in the url." % (methodName, url))
-            return d
-
-        for li in lis:
-            span = li.findChildren('span')
-            if 'rok produkcji' in span[0].text.lower():
-                if li.findChildren('div')[0].text.strip() is not None:
-
-                    try:
-                        d['rok produkcji'] = int(DataCleaning.normalize(li.findChildren('div')[0].text))
-                    except:
-                        moduleLogger.debug("%s - Problems parsing url %s. "
-                                           "There is something wrong with year of production." % (methodName, url))
-                        d['rok produkcji'] = 0
-
-            elif 'przebieg' in span[0].text.lower():
-                if li.findChildren('div')[0].text.strip() is not None:
-                    try:
-                        decVal = DataCleaning.stripDecimalValue(DataCleaning.normalize(li.findChildren('div')[0].text))
-                        d['przebieg'] = int(decVal)
-                    except:
-                        moduleLogger.debug("%s - Problems parsing url %s. "
-                                           "There is something wrong with mileage." % (methodName, url))
-                        d['przebieg'] = 0
-
-            elif 'rodzaj paliwa' in span[0].text.lower():
-                if li.findChildren('div')[0].text.strip() is not None:
-                    d['rodzaj paliwa'] = DataCleaning.normalize(li.findChildren('div')[0].text)
-
-            elif 'kolor' in span[0].text.lower():
-                if li.findChildren('div')[0].text.strip() is not None:
-                    d['kolor'] = DataCleaning.normalize(li.findChildren('div')[0].text)
-
-            elif 'liczba drzwi' in span[0].text.lower():
-                if li.findChildren('div')[0].text.strip() is not None:
-                    d['liczba drzwi'] = DataCleaning.normalize(li.findChildren('div')[0].text)
-
-            elif 'moc' in span[0].text.lower():
-                if li.findChildren('div')[0].text.strip() is not None:
-                    try:
-                        decVal = DataCleaning.stripDecimalValue(DataCleaning.normalize(li.findChildren('div')[0].text))
-                        d['moc'] = int(decVal)
-                    except:
-                        moduleLogger.debug(
-                            "%s - Problems parsing url %s. There is something wrong with power." % (methodName, url))
-                        d['moc'] = 0
-
-            elif 'stan' in span[0].text.lower():
-                if li.findChildren('div')[0].text.strip() is not None:
-                    d['stan'] = DataCleaning.normalize(li.findChildren('div')[0].text)
-
-            elif re.match("pojemno.. skokowa", span[0].text.lower()):
-                if li.findChildren('div')[0].text.strip() is not None:
-                    try:
-                        decVal = DataCleaning.stripDecimalValue(DataCleaning.normalize(li.findChildren('div')[0].text))
-                        d['pojemnosc skokowa'] = int(decVal)
-                    except:
-                        moduleLogger.debug(
-                            "%s - Problems parsing url %s. There is something wrong with capacity." % (methodName, url))
-                        d['pojemnosc skokowa'] = 0
-
-            elif re.match("skrzynia bieg.w", span[0].text.lower()):
-                if li.findChildren('div')[0].text.strip() is not None:
-                    d['skrzynia biegow'] = DataCleaning.normalize(li.findChildren('div')[0].text)
-
-        if d:
-            price = URLOperations.getOtomotoPrice(url)
-            d['cena'] = price
-
-        return d
-
     #TODO simple integration test
     @staticmethod
     def getAllBrands(topUrl):
@@ -336,10 +206,10 @@ class URLOperations(object):
                 continue
 
             soup = BeautifulSoup(r, "lxml")
-
-            for link in soup.find_all('a', href=True):
+            allHrefs = soup.find_all('a', href=True)
+            for link in allHrefs:
                 if (('https://allegro.pl/' in link['href'] or 'http://allegro.pl/' in link['href'])\
-                    and '/' not in link['href'][19:] \
+                    and ('/' not in link['href'][19:] or "ogloszenie" in link['href'])\
                     and link['href'].strip() not in URLOperations.forbiddenLinks
                     and "ref=navbar" not in link['href'].strip()) \
                         or pattern.match(link['href']):
