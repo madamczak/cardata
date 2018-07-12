@@ -16,9 +16,9 @@ class CarVerificationUtils(object):
 
     def _checkString(self, textValue):
         if type(textValue) == str:
-            return '"%s",' % textValue
+            return '%s' % textValue
         else:
-            return '"%s",' % DataCleaning.normalize(textValue)
+            return "%s" % DataCleaning.normalize(textValue)
 
     def _getAllegroDictRegexKey(self, text, carDict):
         regex = re.compile("%s .+:" % text)

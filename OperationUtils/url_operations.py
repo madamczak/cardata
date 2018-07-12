@@ -35,7 +35,7 @@ def openLinkAndReturnSoup(url):
 
 
 class URLOperations(object):
-    #remove this and change it to regex link checking
+    #todo: remove this and change it to regex link checking
     forbiddenLinks = [
                     'https://allegro.pl/',
                     'https://allegro.pl/listing?string=',

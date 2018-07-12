@@ -22,11 +22,11 @@ class SeparateCollectorsTest(unittest.TestCase):
         os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname))
 
     def testSeparateCollectors(self):
+        #todo: test values in db - too many unknowns in color
         brandsCollector = BrandsCollector(self.database)
         numberOfBrands, brandsStartTime = brandsCollector.Collect(limit=20)
         self.assertTrue(brandsCollector.db.brandNameIsPresentInDatabase("Rover"))
         self.assertTrue(brandsCollector.db.brandNameIsPresentInDatabase("Honda"))
-        self.assertTrue(brandsCollector.db.brandNameIsPresentInDatabase("Mercury"))
         self.assertTrue(brandsCollector.db.modelNameIsPresentInDatabase("Accord"))
         self.assertTrue(brandsCollector.db.modelNameIsPresentInDatabase("Civic"))
         self.assertTrue(brandsCollector.db.modelNameIsPresentInDatabase("75"))
@@ -72,7 +72,6 @@ class CombinedCollectorsTest(unittest.TestCase):
 
         self.assertTrue(collector.db.brandNameIsPresentInDatabase("Rover"))
         self.assertTrue(collector.db.brandNameIsPresentInDatabase("Honda"))
-        self.assertTrue(collector.db.brandNameIsPresentInDatabase("Mercury"))
         self.assertTrue(collector.db.modelNameIsPresentInDatabase("Accord"))
         self.assertTrue(collector.db.modelNameIsPresentInDatabase("Civic"))
         self.assertTrue(collector.db.modelNameIsPresentInDatabase("75"))
