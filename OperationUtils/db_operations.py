@@ -386,3 +386,9 @@ class DataBase(object):
 
     def updateParsedParameterForLinkWithId(self, linkId):
         self.executeSqlCommand("""UPDATE links SET parsed = "True" WHERE l_id = "%d" """ % linkId)
+
+    def getLinksOfBrand(self, brand_id):
+        command = """SELECT link from links where b_id = "%d" """ % brand_id
+
+        self.c.execute(command)
+        return self.c.fetchall()

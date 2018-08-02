@@ -47,6 +47,7 @@ class CarDataCollector(object):
 
         whileLoopCounter = 0
         while True:
+            #todo: set this loop to run once a day/night
             if howManyCycles is not None and whileLoopCounter >= howManyCycles:
                 break
 
