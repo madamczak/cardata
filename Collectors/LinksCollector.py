@@ -27,17 +27,20 @@ class LinksCollector(object):
     def _insertLinksFromCategoryToDatabase(self, b_id, links):
         methodName = inspect.stack()[0][3]
         counter = self.db.getAmountOfLinks() + 1
+        newLinks = 0
 
         for link in links:
             if not self.db.linkIsPresentInDatabase(str(link)):
                 self.db.insertLinkToDatabase(counter, b_id, link)
                 counter += 1
+                newLinks += 1
 
         if links:
             moduleLogger.info("%s - Number of new links: %d." % (methodName, len(links)))
         else:
             moduleLogger.info("%s - There weren't any new links in category with b_id: %d" %
                               (methodName, b_id))
+        return newLinks
 
     def Collect(self, limit=100000):
         numberOfNewLinks = 0
@@ -50,7 +53,6 @@ class LinksCollector(object):
                 self.result_dict[future.result()[0]] = future.result()[1]
 
         for b_id, links in self.result_dict.items():
-            self._insertLinksFromCategoryToDatabase(b_id, links)
-            numberOfNewLinks += len(links)
+            numberOfNewLinks += self._insertLinksFromCategoryToDatabase(b_id, links)
 
         return numberOfNewLinks, startTime

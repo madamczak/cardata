@@ -2,7 +2,7 @@ from OperationUtils.db_operations import DataBase
 
 import datetime
 import inspect
-
+import time
 from Collectors.BrandsCollector import BrandsCollector
 from Collectors.LinksCollector import LinksCollector
 from Collectors.CarsCollector import CarsCollector
@@ -39,7 +39,13 @@ class CarDataCollector(object):
         message += "Cycle number: %d" % cycleNumber
         moduleLogger.info("%s" % message)
 
-    def Collect(self, brandsLimit=2000, linksLimit=100000, carslimit=200000, reversed=False, howManyCycles=None):
+    def _waitForNextLoop(self):
+        tomorrow = datetime.datetime.now() + datetime.timedelta(1)
+        midnight = datetime.datetime(year=tomorrow.year, month=tomorrow.month, day=tomorrow.day, hour=0, minute=0,
+                                     second=0)
+        time.sleep((midnight - datetime.datetime.now()).seconds)
+
+    def Collect(self, brandsLimit=2000, linksLimit=100000, carslimit=200000, reversed=False, nightly=False, howManyCycles=None):
         methodName = inspect.stack()[0][3]
 
         moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
@@ -64,6 +70,9 @@ class CarDataCollector(object):
             self._logEndCycleMessage(startTime, newBrands, newLinks, newCars, endTime, whileLoopCounter)
             whileLoopCounter += 1
 
+            if nightly:
+                self._waitForNextLoop()
+
         moduleLogger.info('%s - End of collection.' % methodName)
 
 
@@ -82,8 +91,10 @@ if __name__ == "__main__":
                         help='Maximum number of cars to be collected in one cycle.')
     parser.add_argument("--reversed", required=False, action='store_true',
                         help='Start with parsing stored links insead of collecting new links.')
+    parser.add_argument("--nightly", required=False, action='store_true',
+                        help='Collect only once per night.')
 
     args = parser.parse_args()
     collector = CarDataCollector(args.database_name[0])
-    collector.Collect(args.brands_limit, args.links_limit, args.cars_limit, args.reversed)
+    collector.Collect(args.brands_limit, args.links_limit, args.cars_limit, args.reversed, args.nightly)
 
