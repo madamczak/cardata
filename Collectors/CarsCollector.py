@@ -11,10 +11,12 @@ class CarsCollector(object):
     def __init__(self, database):
         self.db = database
         self.verificator = CarVerificationUtils()
+        #todo: rename result_dict to be more meaningful
         self.result_dict = {}
         self.validLinksDict = {}
         self.invalidLinksList = []
 
+    #todo: verify if there is an easy way to escape passing allegroLinkTuple to the methods below
     def _parseAllegroLink(self, allegroLinkTuple):
         return allegroLinkTuple, URLOperations.parseAllegroSite(allegroLinkTuple[3])
 
@@ -38,6 +40,7 @@ class CarsCollector(object):
             self.db.updateParsedParameterForLinkWithId(validLinkTuple[0])
             self.db.insertAllegroCarToDatabase(validLinkTuple[1], validLinkTuple[0], carDictionary)
 
+    #todo: remove limits as a passed arguments
     def Collect(self, limit=300000):
         startTime = datetime.datetime.now()
 

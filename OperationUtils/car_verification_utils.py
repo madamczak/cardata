@@ -9,12 +9,14 @@ moduleLogger = Logger.setLogger("CarsCollector")
 
 class CarVerificationUtils(object):
     def _checkDigit(self, textValue):
+        # todo: verify if both ways are used, fix accordingly
         if type(textValue) == int or textValue.isdigit():
             return '%d,' % int(textValue)
         else:
             return '0,'
 
     def _checkString(self, textValue):
+        #todo: verify if both ways are used, fix accordingly
         if type(textValue) == str:
             return '%s' % textValue
         else:
@@ -30,6 +32,7 @@ class CarVerificationUtils(object):
         #todo no final statement - can return None (which actually might be ok but check it)
 
     def constructAllegroCarInsert(self, b_id, l_id, carDict):
+        #todo: this would look so much better if Car object would be created, is there time for that?
         methodName = inspect.stack()[0][3]
 
         s = """"""
@@ -68,6 +71,7 @@ class CarVerificationUtils(object):
 
         return s
 
+    #todo: obsolete method
     def constructOtomotoCarInsert(self, b_id, l_id, carDict):
         methodName = inspect.stack()[0][3]
 
@@ -95,6 +99,7 @@ class CarVerificationUtils(object):
 
         return s
 
+    #todo: change to private
     def logDebugDict(self, dct, param):
         msg = ""
         for k, v in dct.items():

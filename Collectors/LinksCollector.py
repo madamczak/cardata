@@ -13,9 +13,12 @@ import concurrent.futures
 class LinksCollector(object):
     def __init__(self, database):
         self.db = database
+        #todo: change result_dict to some more meaningful name
         self.result_dict = {}
 
     def _getNewLinksFromCategorySite(self, categoryTuple):
+        #todo: is this extensive logging necessary? Create a method that will handle log time etc.
+        #todo: multithreaded logging
         methodName = inspect.stack()[0][3]
         moduleLogger.info("%s - %s - Working on category with id: %s, link: %s." %
                           (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M"),
@@ -23,24 +26,24 @@ class LinksCollector(object):
 
         return categoryTuple[0], [str(link) for link in URLOperations.getLinksFromCategorySite(categoryTuple[4])]
 
-    # todo: As a separate method - think about inserting links from entire list instead of inserting each one by one
     def _insertLinksFromCategoryToDatabase(self, b_id, links):
         methodName = inspect.stack()[0][3]
         counter = self.db.getAmountOfLinks() + 1
-        newLinks = 0
+        numberOfNewLinks = 0
 
         for link in links:
             if not self.db.linkIsPresentInDatabase(str(link)):
                 self.db.insertLinkToDatabase(counter, b_id, link)
                 counter += 1
-                newLinks += 1
+                numberOfNewLinks += 1
 
+        #todo: is this logging necessary? Create a method for that.
         if links:
             moduleLogger.info("%s - Number of new links: %d." % (methodName, len(links)))
         else:
             moduleLogger.info("%s - There weren't any new links in category with b_id: %d" %
                               (methodName, b_id))
-        return newLinks
+        return numberOfNewLinks
 
     def Collect(self, limit=100000):
         numberOfNewLinks = 0

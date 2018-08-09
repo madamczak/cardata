@@ -22,6 +22,7 @@ class DataBase(object):
         self.conn.close()
         moduleLogger.info("Connection to db is closed.")
 
+    #todo: testing
     def constructDBTables(self):
         brandsDict = OrderedDict(
             [('b_id', "INT"), ('brandname', "TEXT"), ('modelname', "TEXT"), ('version', "TEXT"), ('link', "TEXT")])
@@ -66,41 +67,43 @@ class DataBase(object):
         self.conn.commit()
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
+    #todo: testing
     def insertLinkToDatabase(self, linkId, brandId, link):
         moduleLogger.debug("Inserting link: %s." % link)
         s = """ %d, %d, "%s", "%s", "%r" """ % (linkId, brandId, str(datetime.datetime.now()), link, False)
         self._insertStringData("links", s)
 
+    # todo: testing
     def insertInvalidLinkToDatabase(self, linkId, link):
         moduleLogger.debug("Inserting invalid link: %s." % link)
         s = """ "%d", "%s", "%s" """ % (linkId, str(datetime.datetime.now()), link)
         self._insertStringData("invalidlinks", s)
 
+    # todo: testing
     def insertBrandToDatabase(self, brandId, brandName, link):
         moduleLogger.debug("Inserting brand: %s." % brandName)
         s = """%d, "%s", NULL, NULL, "%s" """ % (brandId, brandName, link)
         self._insertStringData("cars_brand", s)
 
+    # todo: testing
     def insertModelToDatabase(self, brandId, brandName, modelName, link):
         moduleLogger.debug("Inserting model: %s - %s." % (brandName, modelName))
         s = """%d, "%s", "%s", NULL, "%s" """ % (brandId, brandName, modelName, link)
         self._insertStringData("cars_brand", s)
 
+    # todo: testing
     def insertVersionToDatabase(self, brandId, brandName, modelName, versionName, link):
         s = """%d, "%s", "%s", "%s", "%s" """ % (brandId, brandName, modelName, versionName, link)
         moduleLogger.debug("Inserting version: %s - %s - %s." % (brandName, modelName, versionName))
         self._insertStringData("cars_brand", s)
 
+    # todo: testing
     def insertAllegroCarToDatabase(self, b_id, l_id, carDict):
         verificator = CarVerificationUtils()
         s = verificator.constructAllegroCarInsert(b_id, l_id, carDict)
         self._insertStringData("cars_car", s)
 
-    def insertOtomotoCarToDatabase(self, b_id, l_id, carDict):
-        verificator = CarVerificationUtils()
-        s = verificator.constructOtomotoCarInsert(b_id, l_id, carDict)
-        self._insertStringData("cars_car", s)
-
+    # todo: testing
     def insertCollectCycleToDatabase(self, brandsStartTime, linksStartTime, carsStartTime,
                                      endTime, newBrands, newLinks, newCars):
         dbmsg = """ "%s", "%s", "%s", "%s", %d, %d, %d""" % \
@@ -108,9 +111,11 @@ class DataBase(object):
                  str(endTime), newBrands, newLinks, newCars)
         self._insertStringData("collectcycle", dbmsg)
 
+    # todo: testing
     def getAmountOfBrands(self):
         return self.getMaxFromColumnInTable("b_id", "cars_brand")
 
+    # todo: testing
     def getAmountOfLinks(self):
         return self.getMaxFromColumnInTable("l_id", "links")
 
@@ -138,26 +143,15 @@ class DataBase(object):
             for row in rows:
                 yield row
 
+    # todo: testing
     def readAllUnparsedLinks(self):
         return self.readAllDataGenerator('links', where='WHERE parsed = "False"')
 
+    # todo: testing
     def readAllBrands(self):
         return self.readAllDataGenerator('cars_brand')
 
-    # this is obsolete, use readAllDataGenerator
-    def readAllData(self, tableName):
-
-        methodName = inspect.stack()[0][3]
-
-        command = "SELECT * FROM %s" % tableName
-        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
-        self.c.execute(command)
-        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
-        items = self.c.fetchall()
-        moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(items)))
-        return items
-
-    def executeSqlCommand(self, command):
+    def _executeSqlCommand(self, command):
         methodName = inspect.stack()[0][3]
 
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
@@ -198,39 +192,6 @@ class DataBase(object):
             moduleLogger.debug('%s - There are no cars with B_Id %s'  % (methodName,brandId))
             return []
 
-    #TODO write unittests
-    def getAllParsedBrandsIds(self):
-        methodName = inspect.stack()[0][3]
-
-        command = """SELECT DISTINCT B_Id FROM CarData"""
-        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
-        self.c.execute(command)
-        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
-        output = self.c.fetchall()
-
-        if output:
-            items = [element[0] for element in output]
-            moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(items)))
-            return items
-        else:
-            return []
-
-    # TODO write unittests
-    def getBrandInfo(self, B_Id):
-        methodName = inspect.stack()[0][3]
-
-        command = """SELECT brandName, modelName, version FROM Brands WHERE B_Id = "%s" """ % B_Id
-        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
-        self.c.execute(command)
-        moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
-        output = self.c.fetchone()
-        if output:
-            items = [DataCleaning.normalize(element) for element in output if element]
-            moduleLogger.debug("%s - Number of items returned: %d." % (methodName, len(items)))
-            return items
-        else:
-            return []
-
     def getAllBrandIdsOfBrand(self, brandName):
         return self._getAllIds('brandName', brandName)
 
@@ -255,7 +216,6 @@ class DataBase(object):
 
 
     #TODO: Use GENERATOR for method below
-
     def getAllCars(self):
         methodName = inspect.stack()[0][3]
 
@@ -324,36 +284,46 @@ class DataBase(object):
 
         return valueIsPresentInDb
 
+    # todo: testing
     def linkIsPresentInDatabase(self, link):
         return self._valueIsPresentInColumnOfATable(link, "link", "links")
 
+    # todo: testing
     def thereAreParsedLinksInTheTable(self):
         return self._valueIsPresentInColumnOfATable("True", "parsed", "links")
 
+    # todo: testing
     def thereAreOnlyParsedLinksInTheTable(self):
         return not self._valueIsPresentInColumnOfATable("False", "parsed", "links")
 
+    # todo: testing
     def thereAreOnlyUnparsedLinksInTheTable(self):
         return not self._valueIsPresentInColumnOfATable("True", "parsed", "links")
 
+    # todo: testing
     def brandLinkIsPresentInDatabase(self, link):
         return self._valueIsPresentInColumnOfATable(link, 'link', "cars_brand")
 
+    # todo: testing
     def brandNameIsPresentInDatabase(self, brandName):
         return self._valueIsPresentInColumnOfATable(brandName, 'brandname', "cars_brand")
 
+    # todo: testing
     def modelNameIsPresentInDatabase(self, modelName):
         return self._valueIsPresentInColumnOfATable(modelName, 'modelname', "cars_brand")
 
+    # todo: testing
     def versionIsPresentInDatabase(self, version):
         return self._valueIsPresentInColumnOfATable(version, 'version', "cars_brand")
 
+    # todo: testing
     def countRecordsInTable(self, tableName):
         command = "SELECT count(*) FROM %s" % tableName
         self.c.execute(command)
         output = self.c.fetchone()
         return int(output[0])
 
+    # todo: testing
     def getMaxFromColumnInTable(self, column, table):
         command = """SELECT MAX(%s) FROM %s""" % (column, table)
         self.c.execute(command)
@@ -381,14 +351,10 @@ class DataBase(object):
 
     #TODO: Unit tests, calculate how many links were transfered and return it
     def clearParsedLinks(self):
-        self.executeSqlCommand("INSERT INTO oldlinks SELECT * FROM links WHERE time < '%s'" %
-                               str(datetime.datetime.now() - datetime.timedelta(30)))
+        self._executeSqlCommand("INSERT INTO oldlinks SELECT * FROM links WHERE time < '%s'" %
+                                str(datetime.datetime.now() - datetime.timedelta(30)))
 
+    # todo: testing
     def updateParsedParameterForLinkWithId(self, linkId):
-        self.executeSqlCommand("""UPDATE links SET parsed = "True" WHERE l_id = "%d" """ % linkId)
+        self._executeSqlCommand("""UPDATE links SET parsed = "True" WHERE l_id = "%d" """ % linkId)
 
-    def getLinksOfBrand(self, brand_id):
-        command = """SELECT link from links where b_id = "%d" """ % brand_id
-
-        self.c.execute(command)
-        return self.c.fetchall()

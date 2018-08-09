@@ -16,6 +16,7 @@ def is_ascii(s):
 
 
 def openLinkAndReturnSoup(url):
+    #todo: make this multithreaded - verify time of thread life
     start = time.time()
     moduleLogger.debug("Opening: %s" % url)
     try:
@@ -64,6 +65,7 @@ class URLOperations(object):
 
     @staticmethod
     def getAllegroPrice(url):
+        #todo: testing
         soup = openLinkAndReturnSoup(url)
 
         try:
@@ -80,6 +82,7 @@ class URLOperations(object):
 
     @staticmethod
     #todo: test if a site has specific structure for that method
+    #todo: refactor
     def parseAllegroSite(url):
         methodName = inspect.stack()[0][3]
         keys = []
@@ -175,6 +178,7 @@ class URLOperations(object):
             return dictionary
 
     @staticmethod
+    #todo: testing
     def getLinksFromCategorySite(url, startTimeParameter="&startingTime=13"):
         methodName = inspect.stack()[0][3]
         try:

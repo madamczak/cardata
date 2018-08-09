@@ -121,6 +121,7 @@ class DataCleaning(object):
         else:
             return unicodedata.normalize('NFKD', unicodeValue.strip()).encode('ascii', 'ignore').lower()
 
+#todo: move to another file, this will be a lot more important when data analysis will start
 class DataOperations(object):
     @staticmethod
     def getCarsProducedInYear(carData, year):

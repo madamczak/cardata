@@ -45,6 +45,7 @@ class CarDataCollector(object):
                                      second=0)
         time.sleep((midnight - datetime.datetime.now()).seconds)
 
+    #todo: get rid of limits
     def Collect(self, brandsLimit=2000, linksLimit=100000, carslimit=200000, reversed=False, nightly=False, howManyCycles=None):
         methodName = inspect.stack()[0][3]
 
@@ -53,7 +54,6 @@ class CarDataCollector(object):
 
         whileLoopCounter = 0
         while True:
-            #todo: set this loop to run once a day/night
             if howManyCycles is not None and whileLoopCounter >= howManyCycles:
                 break
 

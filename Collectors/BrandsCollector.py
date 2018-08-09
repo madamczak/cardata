@@ -70,4 +70,5 @@ class BrandsCollector(object):
         moduleLogger.debug("%s - Number of new brands found: %d." % (methodName, counter - startAmountOfBrands))
 
         #todo: unit test if return does not make a mistake (+/- 1)
+        #todo: test if all categories have unique b_id
         return counter - startAmountOfBrands - 1, startTime
