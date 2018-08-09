@@ -64,8 +64,7 @@ class CarDataCollector(object):
                 startTime, newBrands, newLinks, newCars, endTime = \
                     self._collectReversed(brandsLimit, linksLimit, carslimit)
 
-            # clean old links from db
-            self.db.clearParsedLinks()
+            self.db.clearLinksOlderThanMonth()
 
             self._logEndCycleMessage(startTime, newBrands, newLinks, newCars, endTime, whileLoopCounter)
             whileLoopCounter += 1

@@ -1,11 +1,105 @@
-import unittest, os, datetime
+import datetime
 from OperationUtils.db_operations import DataBase
 from Collectors.BrandsCollector import BrandsCollector
 from Collectors.LinksCollector import LinksCollector
 from Collectors.CarsCollector import CarsCollector
 from cars import CarDataCollector
 from unit_tests import *
-import time
+
+
+class DatabaseCreationTest(unittest.TestCase):
+    def setUp(self):
+        self.db = "database_creation_test.db"
+        if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname)):
+            os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname))
+
+        self.database = DataBase(self.db)
+    def testCreateTables(self):
+        self.database.constructDBTables()
+        self.assertTrue(self.database.tableExists('cars_brand'))
+        self.assertTrue(self.database.tableExists('links'))
+        self.assertTrue(self.database.tableExists('oldlinks'))
+        self.assertTrue(self.database.tableExists('cars_car'))
+        self.assertTrue(self.database.tableExists('invalidlinks'))
+        self.assertTrue(self.database.tableExists('collectcycle'))
+
+    def tearDown(self):
+        del self.database
+        if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname)):
+            os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname))
+
+
+class DatabaseInsertionTest(unittest.TestCase):
+    def setUp(self):
+        self.db = "database_insertion_test.db"
+        if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.db)):
+            os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.db))
+
+        self.database = DataBase(self.db)
+        self.database.constructDBTables()
+
+    def testInsertions(self):
+        self.database.insertBrandToDatabase(1, "BMW", "testlink1.com")
+        self.database.insertModelToDatabase(2, "BMW", "5", "testlink2.com")
+        self.database.insertVersionToDatabase(3, "BMW", "5", "e60", "testlink3.com")
+
+        self.database.insertLinkToDatabase(1, 1, "testlink.com")
+        self.database.insertInvalidLinkToDatabase(2, "testlink.com")
+
+        cardict = {
+            "b_id": 1,
+            "l_id": 1,
+            "rok produkcji:": '1988',
+            "przebieg (km):": '168000',
+            "moc (km):": '192',
+            "pojemnosc silnika (cm3):": '2500',
+            "rodzaj paliwa:": "benzyna",
+            "kolor:": "szary",
+            "stan:": "uzywany",
+            "liczba drzwi:": "4/5",
+            "skrzynia biegow:": "automatic",
+            "cena": 29000,
+
+        }
+        self.database.insertAllegroCarToDatabase(1, 1, cardict)
+        self.database.insertCollectCycleToDatabase(datetime.datetime.now(), datetime.datetime.now(),
+                                                   datetime.datetime.now(), datetime.datetime.now(), 1, 1, 1)
+
+        self.assertEqual(self.database.countRecordsInTable("cars_brand"), 3)
+        self.assertEqual(self.database.getAmountOfBrands(), 3)
+        self.assertEqual(self.database.getMaxFromColumnInTable("b_id", "cars_brand"), 3)
+        allBrands = list(self.database.readAllBrands())
+        self.assertEqual(len(allBrands), 3)
+
+        self.assertEqual(self.database.countRecordsInTable("links"), 1)
+        self.assertEqual(self.database.getAmountOfLinks(), 1)
+        unparsedLinks = list(self.database.readAllUnparsedLinks())
+        self.assertEqual(len(unparsedLinks), 1)
+
+        self.assertEqual(self.database.countRecordsInTable("invalidlinks"), 1)
+        self.assertEqual(self.database.countRecordsInTable("cars_car"), 1)
+        self.assertEqual(self.database.countRecordsInTable("collectcycle"), 1)
+
+        self.assertTrue(self.database.brandNameIsPresentInDatabase("BMW"))
+        self.assertTrue(self.database.modelNameIsPresentInDatabase("5"))
+        self.assertTrue(self.database.versionIsPresentInDatabase("e60"))
+
+        self.assertTrue(self.database.brandLinkIsPresentInDatabase("testlink1.com"))
+        self.assertTrue(self.database.brandLinkIsPresentInDatabase("testlink2.com"))
+        self.assertTrue(self.database.brandLinkIsPresentInDatabase("testlink3.com"))
+
+        self.assertTrue(self.database.thereAreOnlyUnparsedLinksInTheTable())
+        self.assertFalse(self.database.thereAreParsedLinksInTheTable())
+
+        self.database.updateParsedParameterForLinkWithId(1)
+
+        self.assertTrue(self.database.thereAreParsedLinksInTheTable())
+        self.assertTrue(self.database.thereAreOnlyParsedLinksInTheTable())
+
+    def tearDown(self):
+        del self.database
+        if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.db)):
+            os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.db))
 
 class SeparateCollectorsTest(unittest.TestCase):
     def setUp(self):
@@ -19,7 +113,8 @@ class SeparateCollectorsTest(unittest.TestCase):
 
     def tearDown(self):
         del self.database
-        os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname))
+        if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname)):
+            os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname))
 
     def testSeparateCollectors(self):
         #todo: test values in db - too many unknowns in color
@@ -45,16 +140,15 @@ class SeparateCollectorsTest(unittest.TestCase):
         self.assertEqual(linksCollector.db.countRecordsInTable("links"), numberOfLinks)
         self.assertLess((datetime.datetime.now() - linksStartTime).total_seconds(), 500)
 
-        # carsCollector = CarsCollector(self.database)
-        # before = time.time()
-        # numberOfCars, carsStartTime = carsCollector.Collect()
-        # self.assertGreater(numberOfCars, 0)
-        # self.assertLessEqual(numberOfCars, numberOfLinks)
-        # self.assertEqual(carsCollector.db.countRecordsInTable("cars_car"), numberOfCars)
-        #
-        # self.assertTrue(carsCollector.db.thereAreOnlyParsedLinksInTheTable())
-        #
-        # self.assertLess((datetime.datetime.now() - carsStartTime).total_seconds(), 900)
+        carsCollector = CarsCollector(self.database)
+        numberOfCars, carsStartTime = carsCollector.Collect()
+        self.assertGreater(numberOfCars, 0)
+        self.assertLessEqual(numberOfCars, numberOfLinks)
+        self.assertEqual(carsCollector.db.countRecordsInTable("cars_car"), numberOfCars)
+
+        self.assertTrue(carsCollector.db.thereAreOnlyParsedLinksInTheTable())
+
+        self.assertLess((datetime.datetime.now() - carsStartTime).total_seconds(), 900)
 
 class CombinedCollectorsTest(unittest.TestCase):
     def setUp(self):
@@ -64,8 +158,8 @@ class CombinedCollectorsTest(unittest.TestCase):
             os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.combinedDBname))
 
     def tearDown(self):
-        #os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.combinedDBname))
-        pass
+        if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname)):
+            os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.separateDBname))
 
     def testCombinedCollectors(self):
         collector = CarDataCollector(self.combinedDBname)
