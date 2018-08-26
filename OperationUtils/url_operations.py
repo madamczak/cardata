@@ -1,7 +1,6 @@
 #-*- coding: utf-8 -*-
-import re
+
 import requests
-import urllib
 from bs4 import BeautifulSoup
 import time
 from OperationUtils.data_operations import DataCleaning
@@ -10,19 +9,17 @@ import inspect
 
 moduleLogger = Logger.setLogger("urlops")
 
-
 def is_ascii(s):
     return all(ord(c) < 128 for c in s)
 
 
 def openLinkAndReturnSoup(url):
-    #todo: make this multithreaded - verify time of thread life
     start = time.time()
     moduleLogger.debug("Opening: %s" % url)
     try:
         agent = {
             "User-Agent": 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36'}
-        page = requests.get(url, headers=agent)
+        page = requests.get(url, headers=agent, timeout=600)
     except:
         time.sleep(60)
         methodName = inspect.stack()[0][3]
@@ -36,38 +33,8 @@ def openLinkAndReturnSoup(url):
 
 
 class URLOperations(object):
-    #todo: remove this and change it to regex link checking
-    forbiddenLinks = [
-                    'https://allegro.pl/',
-                    'https://allegro.pl/listing?string=',
-                    'https://allegro.pl/newItem',
-                    'https://allegro.pl/moje-konto',
-                    'https://allegro.pl/dla-sprzedajacych',
-                    'https://allegro.pl/artykuly',
-                    'https://allegro.pl/pomoc',
-                    'https://allegro.pl/praca',
-                    'https://allegro.pl/mapa-strony',
-                    'https://allegro.pl/',
-                    'https://allegro.pl/strefamarek',
-                    'https://allegro.pl/inspiracje',
-                    'https://allegro.pl/strefaokazji',
-                    'https://allegro.pl/strefamarek?ref=navbar',
-                    'https://allegro.pl/artykuly?ref=navbar',
-                    'https://allegro.pl/category_map.php',
-                    'https://allegro.pl/logout.php',
-                    'https://allegro.pl/strefamarek?ref=navbar',
-                    'https://otomoto.pl',
-                    "https://allegro.pl/sklep?ref=navbar",
-                    "https://allegro.pl/myaccount",
-                    "https://allegro.pl/logout.php?ref=navbar",
-                    "https://allegro.pl/listing?string=Spod"
-                     ]
-
     @staticmethod
-    def getAllegroPrice(url):
-        #todo: testing
-        soup = openLinkAndReturnSoup(url)
-
+    def getAllegroPrice(soup):
         try:
             meta = soup.find_all("meta", {"itemprop" : "price"})
             if meta:
@@ -76,84 +43,50 @@ class URLOperations(object):
                 price = int(float(DataCleaning.stripDecimalValue(soup.findAll("div", { "class" : "m-price" })[0]['data-price'])))
             return price
         except:
-            methodName = inspect.stack()[0][3]
-            moduleLogger.error("%s - Problems getting price from url: %s." % (methodName, url))
             return 0
 
     @staticmethod
-    #todo: test if a site has specific structure for that method
-    #todo: refactor
-    def parseAllegroSite(url):
-        methodName = inspect.stack()[0][3]
-        keys = []
-        vals = []
-
-        soup = openLinkAndReturnSoup(url)
+    def findLocationInSoup(soupObject):
         try:
-            tables = soup.findChildren('table')
+            for link in soupObject.find_all('a', href=True):
+                if "#location" in link['href'] and "," in link.text:
+                    return link.text
         except:
-            moduleLogger.error("%s - Unable to parse site: %s. "
-                               "Just at the beginning there was no 'table' tag in the url." % (methodName, url))
+            return "unknown"
+
+    @staticmethod
+    def parseAllegroSite(url):
+        soup = openLinkAndReturnSoup(url)
+        if soup is None:
             return {}
 
-        if len(tables) != 0:
-            moduleLogger.debug("%s - Allegro type 1 site." % methodName)
-            #type 1 allegro site
-            for t in tables[2:]:
-                rows = [row for row in t.findChildren(['th', 'tr']) if '<' not in row.text and row.text.strip()]
 
-                validCells = []
-                for row in rows:
-                    cells = row.findChildren('td')
-                    validCells.extend([cell for cell in cells if len(cells) == 4])
+        liElements = []
+        for li in soup.findChildren('li'):
+            if len(li.findChildren('div')) == 3:
+                liElements.append(li.findChildren('div'))
 
-                for cell in validCells:
-                    if ":" in cell.text:
-                        keys.append(DataCleaning.normalize(cell.text))
-                    else:
-                        value = DataCleaning.normalize(cell.text)
+        keys, vals = \
+            [DataCleaning.normalize(span[1].text) for span in liElements],\
+            [DataCleaning.normalize(span[2].text) for span in liElements]
 
-                        if value.isdigit():
-                            value = int(value)
-
-                        vals.append(value)
-        else:
-            moduleLogger.debug("%s - Allegro type 2 site." % methodName)
-            #type 2 allegro site
-
-            lis = []
-            for li in soup.findChildren('li'):
-                if len(li.findChildren('div')) == 3:
-                    lis.append(li.findChildren('div'))
-            #lis = [li.findChildren('div') for li in soup.findChildren('li')]# if len(li.findChildren('span')) == 2]
-
-            keys, vals = \
-                [DataCleaning.normalize(span[1].text) for span in lis],\
-                [DataCleaning.normalize(span[2].text) for span in lis]
         if keys and vals:
-            keys.append('cena')
+            keys.append('cena')#price
+            keys.append('miejsce')#location
             try:
-                vals.append(URLOperations.getAllegroPrice(url))
+                vals.append(URLOperations.getAllegroPrice(soup))
+                vals.append(URLOperations.findLocationInSoup(soup))
             except:
                 vals.append(0)
 
-        toRet = dict(zip(keys, vals))
+        return dict(zip(keys, vals))
 
-        if all([val == "0" or val == "" for val in toRet.values()]):
-            moduleLogger.debug("%s - Something went wrong. Empty dictionary is returned. "
-                               "Check out the link: %s." % (methodName, url))
-            return {}
-        else:
-            return toRet
-
-    #TODO simple integration test
     @staticmethod
     def getAllBrands(topUrl):
         methodName = inspect.stack()[0][3]
-        dictionary = {}
+        brandsDictionary = {}
 
         soup = openLinkAndReturnSoup(topUrl)
-
         if soup is None:
             return {}
 
@@ -163,32 +96,26 @@ class URLOperations(object):
             liElements = top[0].findChildren("li")
             for li in liElements:
                 if len(li.findChildren("span")) != 0 and len(li.findChildren('a')) != 0:
-                    a = li.findChildren("a")[0].text
                     key = li.findChildren("a")[0].text.strip()
                     val = "https://allegro.pl" + li.findChildren('a')[0]['href']
-                    dictionary[key] = val
+                    brandsDictionary[key] = val
         else:
             moduleLogger.debug("%s - Problems getting brands. There is no top parameter - 'section' tag." % methodName)
             return {}
 
         #TODO fix magic number 50
-        if len(dictionary.values()) > 50 and topUrl != "https://allegro.pl/kategoria/samochody-osobowe-4029":
+        if len(brandsDictionary.values()) > 50 and topUrl != "https://allegro.pl/kategoria/samochody-osobowe-4029":
             return {}
         else:
-            return dictionary
+            return brandsDictionary
 
     @staticmethod
-    #todo: testing
     def getLinksFromCategorySite(url, startTimeParameter="&startingTime=13"):
         methodName = inspect.stack()[0][3]
         try:
-            lastLinkSiteNumber = int(openLinkAndReturnSoup(url).find_all("li", {"class" : "quantity"})[0].text)
-            moduleLogger.debug("%s - There are currently %d categories in DB." % (methodName, lastLinkSiteNumber))
+            lastLinkSiteNumber = int(openLinkAndReturnSoup(url).find_all("span", {"class" : "m-pagination__text"})[0].text)
         except:
             lastLinkSiteNumber = 1
-            moduleLogger.debug("%s - There are no categories in DB." % methodName)
-
-        pattern = re.compile("(http|https)://(www.)?otomoto.pl")
 
         links = []
         for i in range(1, lastLinkSiteNumber + 1):
@@ -203,22 +130,26 @@ class URLOperations(object):
                 else:
                     address += "?startingTime=13"
 
-            try:
-                r = urllib.urlopen(address).read()
-            except:
-                moduleLogger.error("%s - Unable to open %s. Skipping." % (methodName, address))
-                continue
+            soup = openLinkAndReturnSoup(address)
 
-            soup = BeautifulSoup(r, "lxml")
+            if soup is None:
+                return []
+
             allHrefs = soup.find_all('a', href=True)
             for link in allHrefs:
-                if (('https://allegro.pl/' in link['href'] or 'http://allegro.pl/' in link['href'])\
-                    and ('/' not in link['href'][19:] or "ogloszenie" in link['href'])\
-                    and link['href'].strip() not in URLOperations.forbiddenLinks
-                    and "ref=navbar" not in link['href'].strip()) \
-                        or pattern.match(link['href']):
+                if "https://allegro.pl/ogloszenie" in link['href'] and link['href'] not in links:
+                    links.append(link['href'])
 
-                    if link['href'] not in links:
-                        links.append(link['href'])
         moduleLogger.debug("%s - There are %d new links in %s category site url." % (methodName, len(links), url))
         return links
+#
+# dct = URLOperations.parseAllegroSite("https://allegro.pl/ogloszenie/honda-integra-dc5r-nadwozie-nie-civic-type-r-ep3-7511507970")
+# for key, val in dct.items():
+#     print key, val
+#
+# from car_verification_utils import CarVerificationUtils
+# verificator = CarVerificationUtils()
+# boolshit = verificator.verifyDictionary(dct)
+# print x
+
+

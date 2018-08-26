@@ -1,6 +1,5 @@
 import sqlite3
 from OperationUtils.car_verification_utils import CarVerificationUtils
-from OperationUtils.data_operations import DataCleaning
 from OperationUtils.logger import Logger
 import inspect
 import datetime
@@ -33,7 +32,7 @@ class DataBase(object):
         carDataDict = OrderedDict(
             [('b_id', "INT"), ('l_id', "INT"), ('year', "INT"), ('mileage', "INT"), ('power', "INT"),
              ('capacity', "INT"), ('fuel', "TEXT"), ('color', "TEXT"), ('usedornew', "TEXT"),
-             ('doors', "TEXT"), ('gearbox', "TEXT"), ('price', "INT"), ('time', "TEXT")])
+             ('doors', "TEXT"), ('gearbox', "TEXT"),('location', "TEXT") ,('price', "INT"), ('time', "TEXT")])
         CycleDict = OrderedDict([('start_brands', "TEXT"), ('start_links', "TEXT"), ('start_cars', "TEXT"),
                                  ('end_time', "TEXT"), ('new_brands', "INT"), ('new_links', "INT"),
                                  ('new_cars', "INT")])
@@ -151,7 +150,7 @@ class DataBase(object):
     def _getAllIds(self, colName, name):
         methodName = inspect.stack()[0][3]
 
-        command = """SELECT B_Id FROM Brands WHERE %s = "%s" """ % (colName, name)
+        command = """SELECT B_Id FROM cars_brand WHERE %s = "%s" """ % (colName, name)
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
@@ -167,7 +166,7 @@ class DataBase(object):
     def _getCarsById(self,  brandId):
         methodName = inspect.stack()[0][3]
 
-        command = """SELECT * FROM CarData WHERE B_Id = "%s" """ % brandId
+        command = """SELECT * FROM cars_car WHERE B_Id = "%s" """ % brandId
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
@@ -189,7 +188,7 @@ class DataBase(object):
     def getVersionID(self, modelName, version):
         methodName = inspect.stack()[0][3]
 
-        command = """SELECT B_Id FROM Brands WHERE "modelName" = "%s" and "version" = "%s" """ % (modelName, version)
+        command = """SELECT B_Id FROM cars_brand WHERE "modelName" = "%s" and "version" = "%s" """ % (modelName, version)
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
@@ -207,7 +206,7 @@ class DataBase(object):
     def getAllCars(self):
         methodName = inspect.stack()[0][3]
 
-        command = """SELECT * FROM CarData """
+        command = """SELECT * FROM cars_car """
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))

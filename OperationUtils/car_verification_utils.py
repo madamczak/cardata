@@ -22,15 +22,6 @@ class CarVerificationUtils(object):
         else:
             return "%s" % DataCleaning.normalize(textValue)
 
-    def _getAllegroDictRegexKey(self, text, carDict):
-        regex = re.compile("%s .+:" % text)
-
-        for key in carDict.keys():
-            if text in key:
-                value = self._checkDigit(carDict.get(re.match(regex, key).group(), 0))
-                return value
-        #todo no final statement - can return None (which actually might be ok but check it)
-
     def constructAllegroCarInsert(self, b_id, l_id, carDict):
         #todo: this would look so much better if Car object would be created, is there time for that?
         methodName = inspect.stack()[0][3]
@@ -38,16 +29,10 @@ class CarVerificationUtils(object):
         s = """"""
         s += '%d,' % int(b_id)
         s += '%d,' % int(l_id)
-        s += self._checkDigit(carDict.get('rok produkcji:', 0))
-
-        s += self._getAllegroDictRegexKey("przebieg", carDict)
-
-        # TODO: use regex here
-        s += self._getAllegroDictRegexKey("moc", carDict)
-
-        # s += _checkDigit(carDict.get('pojemnosc silnika [cm3]:', 0))
-
-        s += self._getAllegroDictRegexKey("pojemnosc silnika", carDict)
+        s += self._checkDigit(DataCleaning.stripDecimalValue(carDict.get('rok produkcji:', 0)))
+        s += self._checkDigit(DataCleaning.stripDecimalValue(carDict.get('przebieg:', 0)))
+        s += self._checkDigit(DataCleaning.stripDecimalValue(carDict.get('moc:', 0)))
+        s += self._checkDigit(DataCleaning.stripDecimalValue(carDict.get('pojemnosc silnika:', 0)))
         s += '"%s",' % DataCleaning.internationalizeFuel(str(carDict.get('rodzaj paliwa:', "")))
         s += '"%s",' % DataCleaning.internationalizeColor(self._checkString(carDict.get('kolor:', u"")))
         s += '"%s",' % DataCleaning.internationalizeState(carDict.get('stan:', ""))
@@ -59,43 +44,11 @@ class CarVerificationUtils(object):
         else:
             s += '"%s",' % DataCleaning.internationalizeGearbox(DataCleaning.normalize(gearboxValue))
 
-        try:
-
-            s += '"%d",' % int(carDict.get('cena', 0))
-        except:
-            s += "0,"
-
+        s += '"%s",' % carDict.get('miejsce', "")
+        s += '"%d",' % int(carDict.get('cena', 0))
         s += '"%s"' % str(datetime.datetime.now())
 
         moduleLogger.debug("%s - %s " % (methodName, s))
-
-        return s
-
-    #todo: obsolete method
-    def constructOtomotoCarInsert(self, b_id, l_id, carDict):
-        methodName = inspect.stack()[0][3]
-
-        s = """"""
-        s += '%d,' % int(b_id)
-        s += '%d,' % int(l_id)
-        s += '%d,' % carDict.get('rok produkcji', 0)
-        s += '%d,' % carDict.get('przebieg', 0)
-        s += '%d,' % carDict.get('moc', 0)
-        s += '%d,' % carDict.get('pojemnosc skokowa', 0)
-        s += '"%s",' % DataCleaning.internationalizeFuel(str(carDict.get('rodzaj paliwa', "")))
-        s += '"%s",' % DataCleaning.internationalizeColor(carDict.get('kolor', ""))
-        s += '"%s",' % DataCleaning.internationalizeState(carDict.get('stan', ""))
-        s += '"%s",' % DataCleaning.normalizeNumberOfDoors(str(carDict.get('liczba drzwi', "")))
-        s += '"%s",' % DataCleaning.internationalizeGearbox(str(carDict.get('skrzynia biegow', "")))
-        try:
-
-            s += '"%d",' % int(carDict.get('cena', 0))
-        except:
-            s += "0,"
-
-        s += '"%s"' % str(datetime.datetime.now())
-
-        moduleLogger.debug("%s - %s" % (methodName, s))
 
         return s
 
@@ -144,7 +97,7 @@ class CarVerificationUtils(object):
                         return False
                 else:
                     return False
-                mileage = self._getAllegroDictRegexKey("przebieg", carDict)
+                mileage = carDict.get('przebieg:')
                 if mileage is not None:
                     if mileage == 0:
                         self.logDebugDict(carDict, "Mileage")
@@ -152,7 +105,7 @@ class CarVerificationUtils(object):
                 else:
                     return False
 
-                power = self._getAllegroDictRegexKey("moc", carDict)
+                power = carDict.get('moc:')
                 if power is not None:
                     if power == 0:
                         self.logDebugDict(carDict, "power")
@@ -160,7 +113,7 @@ class CarVerificationUtils(object):
                 else:
                     return False
 
-                capacity = self._getAllegroDictRegexKey("pojemnosc silnika", carDict)
+                capacity = carDict.get('pojemnosc silnika:')
                 if capacity is not None:
                     if capacity == 0:
                         self.logDebugDict(carDict, "capacity")

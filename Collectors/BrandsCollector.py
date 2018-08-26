@@ -6,8 +6,8 @@ import inspect
 from OperationUtils.logger import Logger
 
 moduleLogger = Logger.setLogger("BrandsCollector")
+TOPLINK = "https://allegro.pl/kategoria/samochody-osobowe-4029"
 
-#todo: Test for Collect method
 class BrandsCollector(object):
     def __init__(self, database):
         self.db = database
@@ -43,17 +43,15 @@ class BrandsCollector(object):
 
     def Collect(self, limit=2000):
         methodName = inspect.stack()[0][3]
+        newBrands = 0
 
-        startAmountOfBrands = self.db.getAmountOfBrands()
-        counter = startAmountOfBrands + 1
+        counter = self.db.getAmountOfBrands() + 1
         moduleLogger.debug("%s - Current number of brands: %d." % (methodName, counter - 1))
         startTime = datetime.datetime.now()
 
-        top = URLOperations.getAllBrands("https://allegro.pl/kategoria/samochody-osobowe-4029")
+        top = URLOperations.getAllBrands(TOPLINK)
         for it in top.items():
-            #todo: get this properly done without -1
-            if (counter - 1 - startAmountOfBrands) > limit:
-                moduleLogger.info("%s - Collected %d brands." % (methodName, counter - startAmountOfBrands))
+            if newBrands > limit:
                 break
 
             models = URLOperations.getAllBrands(it[1])
@@ -62,13 +60,16 @@ class BrandsCollector(object):
                     versions = URLOperations.getAllBrands(model[1])
                     if not self._bottomReached(models, versions):
                         for ver in versions.items():
-                            counter += self._addNewVersionCategory(it, model, ver, counter)
+                            toAdd = self._addNewVersionCategory(it, model, ver, counter)
+                            counter += toAdd
+                            newBrands += toAdd
                     else:
-                        counter += self._addNewModelCategory(it, model, counter)
+                        toAdd = self._addNewModelCategory(it, model, counter)
+                        counter += toAdd
+                        newBrands += toAdd
             else:
-                counter += self._addNewBrandCategory(it, counter)
-        moduleLogger.debug("%s - Number of new brands found: %d." % (methodName, counter - startAmountOfBrands))
+                toAdd = self._addNewBrandCategory(it, counter)
+                counter += toAdd
+                newBrands += toAdd
 
-        #todo: unit test if return does not make a mistake (+/- 1)
-        #todo: test if all categories have unique b_id
-        return counter - startAmountOfBrands - 1, startTime
+        return newBrands, startTime
