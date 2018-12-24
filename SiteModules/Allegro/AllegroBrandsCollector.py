@@ -1,17 +1,16 @@
+from SiteModules.common_brands_collector import BrandsCollector
 import re, datetime
 
 from OperationUtils.data_operations import DataCleaning
-from OperationUtils.url_operations import URLOperations
+from SiteModules.Allegro.AllegroUrlOperations import AllegroURLOperations
 import inspect
 from OperationUtils.logger import Logger
 
-moduleLogger = Logger.setLogger("BrandsCollector")
+moduleLogger = Logger.setLogger("AllegroBrandsCollector")
 TOPLINK = "https://allegro.pl/kategoria/samochody-osobowe-4029"
 
-class BrandsCollector(object):
-    def __init__(self, database):
-        self.db = database
 
+class AllegroBrandsCollector(BrandsCollector):
     def _addNewBrandCategory(self, item, count):
         if not self.db.brandLinkIsPresentInDatabase(item[1]) and not self.db.brandNameIsPresentInDatabase(item[0]):
             self.db.insertBrandToDatabase(count, item[0], item[1])
@@ -49,15 +48,15 @@ class BrandsCollector(object):
         moduleLogger.debug("%s - Current number of brands: %d." % (methodName, counter - 1))
         startTime = datetime.datetime.now()
 
-        top = URLOperations.getAllBrands(TOPLINK)
+        top = AllegroURLOperations.getAllBrands(TOPLINK)
         for it in top.items():
             if newBrands > limit:
                 break
 
-            models = URLOperations.getAllBrands(it[1])
+            models = AllegroURLOperations.getAllBrands(it[1])
             if not self._bottomReached(top, models):
                 for model in models.items():
-                    versions = URLOperations.getAllBrands(model[1])
+                    versions = AllegroURLOperations.getAllBrands(model[1])
                     if not self._bottomReached(models, versions):
                         for ver in versions.items():
                             toAdd = self._addNewVersionCategory(it, model, ver, counter)

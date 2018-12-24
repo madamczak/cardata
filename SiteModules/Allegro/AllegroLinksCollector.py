@@ -1,26 +1,24 @@
+from SiteModules.common_links_collector import LinksCollector
+
 import threading
 
-from OperationUtils.url_operations import URLOperations
+from SiteModules.Allegro.AllegroUrlOperations import AllegroURLOperations
 import datetime
 import inspect
 from multiprocessing import cpu_count
 from OperationUtils.logger import Logger
 import concurrent.futures
 
-moduleLogger = Logger.setLogger("LinksCollector")
+moduleLogger = Logger.setLogger("AllegroLinksCollector")
 
-class LinksCollector(object):
-    def __init__(self, database):
-        self.db = database
-        #todo: change result_dict to some more meaningful name
-        self.result_dict = {}
 
+class AllegroLinksCollector(LinksCollector):
     def _getNewLinksFromCategorySite(self, categoryTuple):
         methodName = inspect.stack()[0][3]
         moduleLogger.info("%s - %s - Working on category with id: %s, link: %s." %
                           (methodName, threading.current_thread().name, categoryTuple[0], categoryTuple[4]))
 
-        return categoryTuple[0], [str(link) for link in URLOperations.getLinksFromCategorySite(categoryTuple[4])]
+        return categoryTuple[0], [str(link) for link in AllegroURLOperations.getLinksFromCategorySite(categoryTuple[4])]
 
     def _insertLinksFromCategoryToDatabase(self, b_id, links):
         methodName = inspect.stack()[0][3]

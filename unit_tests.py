@@ -1,11 +1,11 @@
 # -*- coding: utf8 -*-
 from collections import OrderedDict
-
+import time
 import datetime
 
 from OperationUtils.data_operations import DataCleaning
 from OperationUtils.db_operations import DataBase
-from OperationUtils.url_operations import URLOperations
+from SiteModules.Allegro.AllegroUrlOperations import AllegroURLOperations
 
 import unittest
 from mock import patch
@@ -18,14 +18,14 @@ testDB = DataBase("UnitTests/test.db")
 
 
 class AllegroUrlParsing(unittest.TestCase):
-    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('SiteModules.common_url_operations.openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_0_on_invalid_soup(self, mockSoup):
-        price = URLOperations.getAllegroPrice(None)
+        price = AllegroURLOperations.getAllegroPrice(None)
         self.assertEqual(0, price)
 
-    @patch('OperationUtils.url_operations.openLinkAndReturnSoup', return_value=emptySoup)
+    @patch('SiteModules.common_url_operations.openLinkAndReturnSoup', return_value=emptySoup)
     def test_returns_empty_dict_on_invalid_soup(self, mockSoup):
-        parsedDict = URLOperations.parseAllegroSite(None)
+        parsedDict = AllegroURLOperations.parseAllegroSite(None)
         self.assertEqual({}, parsedDict)
 
 class DataCleaningStripDecimalValue(unittest.TestCase):

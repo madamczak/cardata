@@ -1,9 +1,10 @@
 import datetime
 
-from OperationUtils.url_operations import URLOperations
-from Collectors.BrandsCollector import BrandsCollector
-from Collectors.LinksCollector import LinksCollector
-from Collectors.CarsCollector import CarsCollector
+from SiteModules.Allegro.AllegroUrlOperations import AllegroURLOperations
+
+from SiteModules.Allegro.AllegroBrandsCollector import AllegroBrandsCollector
+from SiteModules.Allegro.AllegroLinksCollector import AllegroLinksCollector
+from SiteModules.Allegro.AllegroCarsCollector import AllegroCarsCollector
 from cars import CarDataCollector
 from unit_tests import *
 
@@ -17,7 +18,7 @@ class WebsiteParsingTest(unittest.TestCase):
         modelLink = "https://allegro.pl/kategoria/osobowe-volkswagen-4055"
         versionLink = "https://allegro.pl/kategoria/passat-b6-2005-2010-12764"
         #top
-        allBrands = URLOperations.getAllBrands(topLink)
+        allBrands = AllegroURLOperations.getAllBrands(topLink)
 
         self.assertTrue(u'Rover' in allBrands.keys())
         self.assertTrue("https://allegro.pl/kategoria/osobowe-rover-4048" in allBrands.values())
@@ -42,21 +43,21 @@ class WebsiteParsingTest(unittest.TestCase):
         self.assertTrue(u'Seat' in allBrands.keys())
         self.assertTrue(u'Audi' in allBrands.keys())
         #model
-        allModels = URLOperations.getAllBrands(modelLink)
+        allModels = AllegroURLOperations.getAllBrands(modelLink)
         self.assertTrue(u'Passat' in allModels.keys())
         self.assertTrue("https://allegro.pl/kategoria/volkswagen-passat-12710" in allModels.values())
         #version
-        allVersions = URLOperations.getAllBrands(versionLink)
+        allVersions = AllegroURLOperations.getAllBrands(versionLink)
         self.assertTrue(u'B7 (2010-2014)' in allVersions.keys())
         self.assertTrue("https://allegro.pl/kategoria/passat-b7-2010-2014-110751" in allVersions.values())
 
     def testLinksFromCategorySite(self):
-        lastWeeke60Links = URLOperations.getLinksFromCategorySite(
+        lastWeeke60Links = AllegroURLOperations.getLinksFromCategorySite(
             "https://allegro.pl/kategoria/seria-5-e60-2003-2010-18083")
-        alle60Links = URLOperations.getLinksFromCategorySite(
+        alle60Links = AllegroURLOperations.getLinksFromCategorySite(
             "https://allegro.pl/kategoria/seria-5-e60-2003-2010-18083", startTimeParameter=None)
 
-        lastWeek5SeriesLinks = URLOperations.getLinksFromCategorySite(
+        lastWeek5SeriesLinks = AllegroURLOperations.getLinksFromCategorySite(
             "https://allegro.pl/kategoria/bmw-seria-5-12437")
 
         self.assertGreater(len(lastWeeke60Links), 0)
@@ -65,13 +66,13 @@ class WebsiteParsingTest(unittest.TestCase):
             self.assertTrue(link in lastWeek5SeriesLinks)
 
     def testParseAllegroSite(self):
-        lastWeeke60Links = URLOperations.getLinksFromCategorySite(
+        lastWeeke60Links = AllegroURLOperations.getLinksFromCategorySite(
             "https://allegro.pl/kategoria/seria-5-e60-2003-2010-18083")
 
         keys = ["rok produkcji:", "przebieg:", "moc:", "pojemnosc silnika:", "cena"] #most important
 
         for link in lastWeeke60Links[:10]:
-            carDict = URLOperations.parseAllegroSite(link)
+            carDict = AllegroURLOperations.parseAllegroSite(link)
 
             for key in keys:
                 self.assertTrue(key in carDict.keys(), msg="Missing key: %s" % key)
@@ -185,7 +186,7 @@ class SeparateCollectorsTest(unittest.TestCase):
         _deleteDatabaseIfExists(self.separateDBname)
 
     def testSeparateCollectors(self):
-        brandsCollector = BrandsCollector(self.database)
+        brandsCollector = AllegroBrandsCollector(self.database)
         numberOfBrands, brandsStartTime = brandsCollector.Collect(limit=20)
         self.assertTrue(brandsCollector.db.brandNameIsPresentInDatabase("Rover"))
         self.assertTrue(brandsCollector.db.brandNameIsPresentInDatabase("Honda"))
@@ -197,14 +198,14 @@ class SeparateCollectorsTest(unittest.TestCase):
         self.assertGreater(numberOfBrands, 20)
         self.assertGreater(brandsCollector.db.countRecordsInTable("cars_brand"), 20)
         self.assertEqual(brandsCollector.db.countRecordsInTable("cars_brand"), numberOfBrands)
-        linksCollector = LinksCollector(self.database)
+        linksCollector = AllegroLinksCollector(self.database)
         numberOfLinks, linksStartTime = linksCollector.Collect()
         self.assertFalse(linksCollector.db.thereAreParsedLinksInTheTable())
         self.assertGreater(numberOfLinks, 10)
         self.assertEqual(linksCollector.db.countRecordsInTable("links"), numberOfLinks)
         self.assertLess((datetime.datetime.now() - linksStartTime).total_seconds(), 500)
 
-        carsCollector = CarsCollector(self.database)
+        carsCollector = AllegroCarsCollector(self.database)
         numberOfCars, carsStartTime = carsCollector.Collect()
         self.assertGreater(numberOfCars, 0)
         self.assertLessEqual(numberOfCars, numberOfLinks)

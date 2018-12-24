@@ -1,23 +1,16 @@
-from OperationUtils.car_verification_utils import CarVerificationUtils
+from SiteModules.common_cars_collector import CarsCollector
 from multiprocessing import cpu_count
-from OperationUtils.url_operations import URLOperations
+from SiteModules.Allegro.AllegroUrlOperations import AllegroURLOperations
 import datetime
 import concurrent.futures
 
 from OperationUtils.logger import Logger
-moduleLogger = Logger.setLogger("CarsCollector")
+moduleLogger = Logger.setLogger("AllegroCarsCollector")
 
 
-class CarsCollector(object):
-    def __init__(self, database):
-        self.db = database
-        self.verificator = CarVerificationUtils()
-        self.carsResultDict = {}
-        self.validLinksDict = {}
-        self.invalidLinksList = []
-
+class AllegroCarsCollector(CarsCollector):
     def _parseAllegroLink(self, allegroLinkTuple):
-        return allegroLinkTuple, URLOperations.parseAllegroSite(allegroLinkTuple[3])
+        return allegroLinkTuple, AllegroURLOperations.parseAllegroSite(allegroLinkTuple[3])
 
     def sortDictionaries(self, allegroLinkTuple, d):
         if self.verificator.verifyDictionary(d):

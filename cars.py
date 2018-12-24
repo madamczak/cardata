@@ -3,10 +3,9 @@ from OperationUtils.db_operations import DataBase
 import datetime
 import inspect
 import time
-from Collectors.BrandsCollector import BrandsCollector
-from Collectors.LinksCollector import LinksCollector
-from Collectors.CarsCollector import CarsCollector
-
+from SiteModules.Allegro.AllegroBrandsCollector import AllegroBrandsCollector
+from SiteModules.Allegro.AllegroLinksCollector import AllegroLinksCollector
+from SiteModules.Allegro.AllegroCarsCollector import AllegroCarsCollector
 from OperationUtils.logger import Logger
 moduleLogger = Logger.setLogger("cars.py")
 
@@ -15,18 +14,18 @@ class CarDataCollector(object):
         self.db = DataBase(databaseName)
 
     def _collectNormal(self, brandsLimit=2000):
-        newBrands, brandsStartTime = BrandsCollector(self.db).Collect(limit=brandsLimit)
-        newLinks, linksStartTime = LinksCollector(self.db).Collect()
-        newCars, carsStartTime = CarsCollector(self.db).Collect()
+        newBrands, brandsStartTime = AllegroBrandsCollector(self.db).Collect(limit=brandsLimit)
+        newLinks, linksStartTime = AllegroLinksCollector(self.db).Collect()
+        newCars, carsStartTime = AllegroCarsCollector(self.db).Collect()
         endTime = str(datetime.datetime.now())
         self.db.insertCollectCycleToDatabase(brandsStartTime, linksStartTime, carsStartTime,
                                              endTime, newBrands, newLinks, newCars)
         return brandsStartTime, newBrands, newLinks, newCars, endTime
 
     def _collectReversed(self, brandsLimit=2000):
-        newCars, carsStartTime = CarsCollector(self.db).Collect()
-        newBrands, brandsStartTime = BrandsCollector(self.db).Collect(limit=brandsLimit)
-        newLinks, linksStartTime = LinksCollector(self.db).Collect()
+        newCars, carsStartTime = AllegroCarsCollector(self.db).Collect()
+        newBrands, brandsStartTime = AllegroBrandsCollector(self.db).Collect(limit=brandsLimit)
+        newLinks, linksStartTime = AllegroLinksCollector(self.db).Collect()
         endTime = str(datetime.datetime.now())
         self.db.insertCollectCycleToDatabase(brandsStartTime, linksStartTime, carsStartTime,
                                              endTime, newBrands, newLinks, newCars)

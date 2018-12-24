@@ -1,38 +1,13 @@
 #-*- coding: utf-8 -*-
-
-import requests
-from bs4 import BeautifulSoup
-import time
 from OperationUtils.data_operations import DataCleaning
 from OperationUtils.logger import Logger
 import inspect
+from SiteModules.common_url_operations import openLinkAndReturnSoup
 
-moduleLogger = Logger.setLogger("urlops")
-
-def is_ascii(s):
-    return all(ord(c) < 128 for c in s)
+moduleLogger = Logger.setLogger("Allegro URL Operations")
 
 
-def openLinkAndReturnSoup(url):
-    start = time.time()
-    moduleLogger.debug("Opening: %s" % url)
-    try:
-        agent = {
-            "User-Agent": 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36'}
-        page = requests.get(url, headers=agent, timeout=600)
-    except:
-        time.sleep(60)
-        methodName = inspect.stack()[0][3]
-        moduleLogger.info("%s - Problems with parsing %s, sleep 60 seconds." % (methodName, url))
-        return None
-
-    bsObject = BeautifulSoup(page.content, "lxml")
-
-    moduleLogger.debug("Returning bs object from url: %s. It took %d seconds to parse it." % (url, time.time() - start))
-    return bsObject
-
-
-class URLOperations(object):
+class AllegroURLOperations(object):
     @staticmethod
     def getAllegroPrice(soup):
         try:
@@ -74,8 +49,8 @@ class URLOperations(object):
             keys.append('cena')#price
             keys.append('miejsce')#location
             try:
-                vals.append(URLOperations.getAllegroPrice(soup))
-                vals.append(URLOperations.findLocationInSoup(soup))
+                vals.append(AllegroURLOperations.getAllegroPrice(soup))
+                vals.append(AllegroURLOperations.findLocationInSoup(soup))
             except:
                 vals.append(0)
 
