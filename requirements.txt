@@ -1,0 +1,9 @@
+# on raspbian run following commands before:
+# sudo apt-get install python3-lxml python-lxml
+# sudo apt-get install libxml2-dev libxslt-dev python-dev
+
+lxml
+bs4
+requests
+futures
+mock
