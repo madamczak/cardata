@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
 from collections import OrderedDict
 
+import datetime
+
 from OperationUtils.data_operations import DataCleaning
 from OperationUtils.db_operations import DataBase
 from OperationUtils.url_operations import URLOperations
@@ -277,6 +279,35 @@ class DataCleaningInternationalize(unittest.TestCase):
     def test_internationalizes_gearbox_unknown(self):
         toInternationalize = "aaabbb"
         self.assertEqual(DataCleaning.internationalizeGearbox(toInternationalize), "unknown")
+
+class DataCleaningCarList(unittest.TestCase):
+    def setUp(self):
+        self.listOfCars = [
+            (1087, 13281, 2009, 155278, 80, 1229, u'petrol', u'black', u'used', u'4/5', u'manual',
+             u'\u0141\xf3d\u017a, woj. \u0142\xf3dzkie', 17900, u'2018-08-18 17:46:51.642188'),
+            (1087, 13281, 1000, 1, 10, 10, u'petrol', u'black', u'used', u'4/5', u'unknown',
+             u'\u0141\xf3d\u017a, woj. \u0142\xf3dzkie', 200, u'2018-08-18 17:46:51.642188'),
+            (1087, 13281, datetime.date.today().year + 5, 9999999, 1500, 10000, u'petrol', u'black', u'used',
+             u'4/5', u'unknown', u'\u0141\xf3d\u017a, woj. \u0142\xf3dzkie', 2000000, u'2018-08-18 17:46:51.642188')
+        ]
+    def test_clean_year(self):
+        self.assertEqual(len(DataCleaning.cleanYear(self.listOfCars)), 1)
+
+    def test_clean_mileage(self):
+        self.assertEqual(len(DataCleaning.cleanMileage(self.listOfCars)), 1)
+
+    def test_clean_power(self):
+        self.assertEqual(len(DataCleaning.cleanPower(self.listOfCars)), 1)
+
+    def test_clean_capacity(self):
+        self.assertEqual(len(DataCleaning.cleanCapacity(self.listOfCars)), 1)
+
+    def test_clean_price(self):
+        self.assertEqual(len(DataCleaning.cleanPrice(self.listOfCars)), 1)
+
+    def test_clean_unknown(self):
+        lst = DataCleaning.cleanUnknowns(self.listOfCars)
+        self.assertEqual(len(lst), 1)
 
 
 

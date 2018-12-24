@@ -110,7 +110,7 @@ class URLOperations(object):
             return brandsDictionary
 
     @staticmethod
-    def getLinksFromCategorySite(url, startTimeParameter="&startingTime=13"):
+    def getLinksFromCategorySite(url, startTimeParameter="&startingTime=7"):
         methodName = inspect.stack()[0][3]
         try:
             lastLinkSiteNumber = int(openLinkAndReturnSoup(url).find_all("span", {"class" : "m-pagination__text"})[0].text)
@@ -126,9 +126,9 @@ class URLOperations(object):
 
             if startTimeParameter is not None:
                 if "?" in address:
-                    address += "&startingTime=13" #get links only from last 1 weeks for performance reasons
+                    address += "&startingTime=7" #get links only from last 1 weeks for performance reasons
                 else:
-                    address += "?startingTime=13"
+                    address += "?startingTime=7"
 
             soup = openLinkAndReturnSoup(address)
 
@@ -142,14 +142,3 @@ class URLOperations(object):
 
         moduleLogger.debug("%s - There are %d new links in %s category site url." % (methodName, len(links), url))
         return links
-#
-# dct = URLOperations.parseAllegroSite("https://allegro.pl/ogloszenie/honda-integra-dc5r-nadwozie-nie-civic-type-r-ep3-7511507970")
-# for key, val in dct.items():
-#     print key, val
-#
-# from car_verification_utils import CarVerificationUtils
-# verificator = CarVerificationUtils()
-# boolshit = verificator.verifyDictionary(dct)
-# print x
-
-

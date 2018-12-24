@@ -57,6 +57,7 @@ class CarDataCollector(object):
             if nightly:
                 self._waitForNextLoop()
 
+            #todo: this should be a loop condition
             if howManyCycles is not None and whileLoopCounter >= howManyCycles:
                 break
 
@@ -89,7 +90,10 @@ if __name__ == "__main__":
     parser.add_argument("--nightly", required=False, action='store_true',
                         help='Collect only once per night.')
 
+    parser.add_argument("--howmanycycles", type=int, required=False, default=1,
+                        help='Number of cycles')
+
     args = parser.parse_args()
     collector = CarDataCollector(args.database_name[0])
-    collector.Collect(args.brands_limit, args.reversed, args.nightly)
+    collector.Collect(args.brands_limit, args.reversed, args.nightly, args.howmanycycles)
 

@@ -39,7 +39,6 @@ class CarsCollector(object):
             self.db.updateParsedParameterForLinkWithId(validLinkTuple[0])
             self.db.insertAllegroCarToDatabase(validLinkTuple[1], validLinkTuple[0], carDictionary)
 
-    #todo: remove limits as a passed arguments
     def Collect(self):
         startTime = datetime.datetime.now()
 

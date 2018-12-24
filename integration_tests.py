@@ -200,7 +200,7 @@ class SeparateCollectorsTest(unittest.TestCase):
         linksCollector = LinksCollector(self.database)
         numberOfLinks, linksStartTime = linksCollector.Collect()
         self.assertFalse(linksCollector.db.thereAreParsedLinksInTheTable())
-        self.assertGreater(numberOfLinks, 50)
+        self.assertGreater(numberOfLinks, 10)
         self.assertEqual(linksCollector.db.countRecordsInTable("links"), numberOfLinks)
         self.assertLess((datetime.datetime.now() - linksStartTime).total_seconds(), 500)
 
@@ -234,9 +234,9 @@ class CombinedCollectorsTest(unittest.TestCase):
         self.assertTrue(collector.db.versionIsPresentInDatabase("V (1993-1998)"))
 
         self.assertGreater(collector.db.countRecordsInTable("cars_brand"), 20)
-        self.assertGreater(collector.db.countRecordsInTable("links"), 50)
+        self.assertGreater(collector.db.countRecordsInTable("links"), 10)
         self.assertGreaterEqual(collector.db.countRecordsInTable("invalidlinks"), 0)
-        self.assertGreater(collector.db.countRecordsInTable("cars_car"), 50)
+        self.assertGreater(collector.db.countRecordsInTable("cars_car"), 10)
 
         self.assertTrue(collector.db.thereAreOnlyParsedLinksInTheTable())
 

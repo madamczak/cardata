@@ -1,6 +1,9 @@
 # -*- coding: utf8 -*-
 
 import re
+
+import datetime
+
 from OperationUtils.logger import Logger
 import inspect
 import unicodedata
@@ -60,9 +63,85 @@ GEARBOXWORDSDICT = {
             'polautomatyczna (asg, tiptronic)': 'half-automatic',
             'polautomatyczna (asg)': 'half-automatic'}
 
+COLUMNIDDICTIONARY = {
+            "b_id": 0,
+            "l_id": 1,
+            "year": 2,
+            "mileage": 3,
+            "power": 4,
+            "capacity": 5,
+            "fuel": 6,
+            "color": 7,
+            "usedornew": 8,
+            "doors": 9,
+            "gearbox": 10,
+            "location": 11,
+            "price": 12,
+            "time": 13
+        }
+
 class DataCleaning(object):
     @staticmethod
+    def cleanAllData(listOfCars):
+        cleanedNumeric = DataCleaning.cleanAllNumericData(listOfCars)
+        cleanedUnknowns = DataCleaning.cleanUnknowns(cleanedNumeric)
+        return cleanedUnknowns
+
+    @staticmethod
+    def cleanAllNumericData(listOfCars):
+        cleanedYear = DataCleaning.cleanYear(listOfCars)
+        cleanedMileage = DataCleaning.cleanMileage(cleanedYear)
+        cleanedPower = DataCleaning.cleanPower(cleanedMileage)
+        cleanedCapacity = DataCleaning.cleanCapacity(cleanedPower)
+        cleanedPrice = DataCleaning.cleanPrice(cleanedCapacity)
+        return cleanedPrice
+
+    @staticmethod
+    def cleanUnknowns(listOfCars):
+        cleaned = []
+        for car in listOfCars:
+            if all([col != 'unknown' for col in car]):
+                cleaned.append(car)
+        return cleaned
+
+    @staticmethod
+    def cleanListOfCars(listOfCars, column, minimum, maximum):
+        cleaned = []
+        columnId = COLUMNIDDICTIONARY.get(column)
+        for car in listOfCars:
+            valueToCompare = car[columnId]
+            if valueToCompare > minimum and valueToCompare < maximum:
+                cleaned.append(car)
+
+        return cleaned
+
+    @staticmethod
+    def cleanYear(listOfCars, minYear=1960, maxYear=datetime.datetime.now().year):
+        return DataCleaning.cleanListOfCars(listOfCars, "year", minYear, maxYear)
+
+    @staticmethod
+    def cleanMileage(listOfCars, minMileage=100, maxMileage=950000):
+        return DataCleaning.cleanListOfCars(listOfCars, "mileage", minMileage, maxMileage)
+
+    @staticmethod
+    def cleanPower(listOfCars, minPower=24, maxPower=1400):
+        return DataCleaning.cleanListOfCars(listOfCars, "power", minPower, maxPower)
+
+    @staticmethod
+    def cleanCapacity(listOfCars, minCapacity=600, maxCapacity=9000):
+        return DataCleaning.cleanListOfCars(listOfCars, "capacity", minCapacity, maxCapacity)
+
+    @staticmethod
+    def cleanPrice(listOfCars, minPrice=400, maxPrice=1000000):
+        return DataCleaning.cleanListOfCars(listOfCars, "price", minPrice, maxPrice)
+
+    @staticmethod
     def stripDecimalValue(dval):
+        #TODO: check why int
+        if type(dval) == int:
+            return dval
+
+
         dval = dval.replace("cm3", "")
 
         catchDoors = re.match("\d/\d", dval)
