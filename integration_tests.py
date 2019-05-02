@@ -1,18 +1,85 @@
 import datetime
 
+from OperationUtils.db_operations import DataBaseSchema
 from SiteModules.Allegro.AllegroUrlOperations import AllegroURLOperations
+from SiteModules.OtoMoto.OtoMotoUrlOperations import OtoMotoURLOperations
 
 from SiteModules.Allegro.AllegroBrandsCollector import AllegroBrandsCollector
 from SiteModules.Allegro.AllegroLinksCollector import AllegroLinksCollector
 from SiteModules.Allegro.AllegroCarsCollector import AllegroCarsCollector
 from cars import CarDataCollector
 from unit_tests import *
+import requests
 
 def _deleteDatabaseIfExists(dbName):
     if os.path.exists(os.path.join(os.path.dirname(os.path.realpath(__file__)), dbName)):
         os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), dbName))
 
-class WebsiteParsingTest(unittest.TestCase):
+class OtoMotoWebsiteParsingTest(unittest.TestCase):
+    def testParseOtoMotoSite(self):
+        lastWeeke60Links = OtoMotoURLOperations.getLinksFromCategorySite(
+            "https://www.otomoto.pl/osobowe/bmw/seria-5/e60-2003-2010")
+
+        keys = ["Rok produkcji", "Przebieg", "price"] #most important
+
+        for link in lastWeeke60Links[:10]:
+            carDict = OtoMotoURLOperations.parseOtomotoSite(link)
+
+            for key in keys:
+                self.assertTrue(key in carDict.keys(), msg="Missing key: %s" % key)
+
+            self.assertGreaterEqual(carDict.get("price"), 0)
+
+            self.assertGreaterEqual(int(carDict.get("Rok produkcji")), 2003)
+            self.assertLessEqual(int(carDict.get("Rok produkcji")), 2010)
+
+            self.assertGreaterEqual(int(DataCleaning.stripDecimalValue(carDict.get("Przebieg"))), 0)
+            self.assertLessEqual(int(DataCleaning.stripDecimalValue(carDict.get("Przebieg"))), 10000000)
+
+            self.assertNotEqual(carDict.get("location"), None)
+            self.assertEqual(carDict.get("currency"), "PLN")
+
+            #todo: date
+
+    def testNumberOfPagesInCategorySite(self):
+        model = OtoMotoURLOperations.getNumberOfPagesInBrandCategory("https://www.otomoto.pl/osobowe/bmw/seria-5/")
+        version = OtoMotoURLOperations.getNumberOfPagesInBrandCategory("https://www.otomoto.pl/osobowe/bmw/seria-5/e60-2003-2010")
+        self.assertGreater(model, version)
+
+        zeroPages = OtoMotoURLOperations.getNumberOfPagesInBrandCategory("https://www.otomoto.pl/osobowe/aro/")
+        self.assertEqual(zeroPages, 0)
+
+    def testLinksFromCategorySite(self):
+        alle60Links = OtoMotoURLOperations.getLinksFromCategorySite(
+            "https://www.otomoto.pl/osobowe/bmw/seria-5/e60-2003-2010/")
+
+        all5SeriesLinks = OtoMotoURLOperations.getLinksFromCategorySite(
+            "https://www.otomoto.pl/osobowe/bmw/seria-5/")
+
+        self.assertGreater(len(all5SeriesLinks), len(alle60Links))
+
+    def testBrandMatchingForOtomoto(self):
+        testDB = DataBase("UnitTests/test.db")
+        matchDictionary = OtoMotoURLOperations.getAllBrandsMatch(testDB)
+        self.assertEquals(len(matchDictionary.keys()), 5)
+        self.assertTrue(25 in matchDictionary.keys())
+        self.assertTrue(27 in matchDictionary.keys())
+        self.assertTrue(45 in matchDictionary.keys())
+        self.assertTrue(46 in matchDictionary.keys())
+        self.assertTrue(47 in matchDictionary.keys())
+
+        for linkValue in matchDictionary.values():
+            response = requests.get(linkValue)
+            self.assertFalse(response.history)
+
+
+    def testBrandMatchingForOtomotoWrongDB(self):
+        testDB = ""
+        matchDictionary = OtoMotoURLOperations.getAllBrandsMatch(testDB)
+        self.assertEquals(len(matchDictionary.keys()), 0)
+
+
+class AllegroWebsiteParsingTest(unittest.TestCase):
     def testGettingAllBrands(self):
         topLink = "https://allegro.pl/kategoria/samochody-osobowe-4029"
         modelLink = "https://allegro.pl/kategoria/osobowe-volkswagen-4055"
@@ -40,7 +107,7 @@ class WebsiteParsingTest(unittest.TestCase):
         self.assertTrue(u'Renault' in allBrands.keys())
         self.assertTrue(u'Volvo' in allBrands.keys())
         self.assertTrue(u'Citroen' in allBrands.keys())
-        self.assertTrue(u'Seat' in allBrands.keys())
+        self.assertTrue(u'SEAT' in allBrands.keys())
         self.assertTrue(u'Audi' in allBrands.keys())
         #model
         allModels = AllegroURLOperations.getAllBrands(modelLink)
@@ -85,6 +152,25 @@ class WebsiteParsingTest(unittest.TestCase):
             self.assertGreaterEqual(int(DataCleaning.stripDecimalValue(carDict.get("przebieg:"))), 0)
             self.assertLessEqual(int(DataCleaning.stripDecimalValue(carDict.get("przebieg:"))), 10000000)
 
+
+class DataBaseSchemaTest(unittest.TestCase):
+    def setUp(self):
+        self.db = "database_creation_test.db"
+        _deleteDatabaseIfExists(self.db)
+        self.database = DataBase(self.db)
+
+    def testWorkingDatabaseHasCorrectSchema(self):
+        dbSchema = DataBaseSchema()
+        workingDatabase = DataBase("crontest3.db")
+        #check tables
+        for table in dbSchema.getEntireSchema():
+            self.assertTrue(workingDatabase.tableExists(table.getName()))
+            #check columns
+            for columnName in table.getColumnsNames():
+                self.assertTrue(workingDatabase.columnOfATableExists(columnName, table.getName()),
+                                "Column %s is not present in table: %s" % (columnName, table.getName()))
+
+
 class DatabaseCreationTest(unittest.TestCase):
     def setUp(self):
         self.db = "database_creation_test.db"
@@ -92,16 +178,49 @@ class DatabaseCreationTest(unittest.TestCase):
         self.database = DataBase(self.db)
     def testCreateTables(self):
         self.database.constructDBTables()
+
+        brands_columns = ["b_id", "brandname", "modelname", "version", "link"]
+        links_columns = ["l_id", "b_id", "time", "link", "parsed"]
+        cars_columns = ["b_id", "l_id", "year", "mileage", "power", "capacity", "power", "fuel", "color", "usedornew",
+                        "gearbox", "doors", "location", "price", "time"]
+        invalid_links_columns = ["l_id", "time", "link"]
+        collect_cycle_columns = ["start_brands", "start_links", "start_cars", "end_time", "new_brands", "new_links",
+                                 "new_cars"]
+
         self.assertTrue(self.database.tableExists('cars_brand'))
+        for brands_column in brands_columns:
+            self.assertTrue(self.database.columnOfATableExists(brands_column, "cars_brand"))
+
         self.assertTrue(self.database.tableExists('links'))
+
+        for links_column in links_columns:
+            self.assertTrue(self.database.columnOfATableExists(links_column, "links"))
+
         self.assertTrue(self.database.tableExists('oldlinks'))
+        for old_links_column in links_columns:
+            self.assertTrue(self.database.columnOfATableExists(old_links_column, "oldlinks"))
+
         self.assertTrue(self.database.tableExists('cars_car'))
+
+        for cars_column in cars_columns:
+            self.assertTrue(self.database.columnOfATableExists(cars_column, "cars_car"))
+
         self.assertTrue(self.database.tableExists('invalidlinks'))
+        for invalid_links_column in invalid_links_columns:
+            self.assertTrue(self.database.columnOfATableExists(invalid_links_column, "invalidlinks"))
+
         self.assertTrue(self.database.tableExists('collectcycle'))
+
+        for collect_cycle_column in collect_cycle_columns:
+            self.assertTrue(self.database.columnOfATableExists(collect_cycle_column, "collectcycle"))
+
+        #TODO: new tables/columns
+
 
     def tearDown(self):
         del self.database
         _deleteDatabaseIfExists(self.db)
+
 
 class DatabaseInsertionTest(unittest.TestCase):
     def setUp(self):
@@ -172,7 +291,8 @@ class DatabaseInsertionTest(unittest.TestCase):
         del self.database
         _deleteDatabaseIfExists(self.db)
 
-class SeparateCollectorsTest(unittest.TestCase):
+
+class AllegroSeparateCollectorsTest(unittest.TestCase):
     def setUp(self):
         self.separateDBname = "separate_collectors_test.db"
 
@@ -215,7 +335,8 @@ class SeparateCollectorsTest(unittest.TestCase):
 
         self.assertLess((datetime.datetime.now() - carsStartTime).total_seconds(), 900)
 
-class CombinedCollectorsTest(unittest.TestCase):
+
+class AllegroCombinedCollectorsTest(unittest.TestCase):
     def setUp(self):
         self.combinedDBname = "combined_collectors_test.db"
         _deleteDatabaseIfExists(self.combinedDBname)
@@ -243,7 +364,8 @@ class CombinedCollectorsTest(unittest.TestCase):
 
         self.assertEqual(collector.db.countRecordsInTable("collectcycle"), 1)
 
-class CollectedDataTest(unittest.TestCase):
+
+class AllegroCollectedDataTest(unittest.TestCase):
     def setUp(self):
         self.collectedDataDB = "collected_data_test.db"
         _deleteDatabaseIfExists(self.collectedDataDB)
@@ -272,7 +394,8 @@ class CollectedDataTest(unittest.TestCase):
         self.assertFalse(all([car[10] == u'unknown' for car in allCars]))  # gearbox
         self.assertFalse(all([car[10] == 0 for car in allCars]))  # price
 
-class MoreThanOneCycleTest(unittest.TestCase):
+
+class AllegroMoreThanOneCycleTest(unittest.TestCase):
     def setUp(self):
         self.dbname = "morethanonecycle_collectors_test.db"
         _deleteDatabaseIfExists(self.dbname)

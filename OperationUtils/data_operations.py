@@ -167,6 +167,35 @@ class DataCleaning(object):
             return "unknown"
 
     @staticmethod
+    def getVersionProductionBeginYear(versionText):
+        regexMatch = re.findall(r"\([0-9]{4,7}-", versionText)
+        if regexMatch:
+             return int(regexMatch[0][1:-1])
+        else:
+            return None
+
+    @staticmethod
+    def getVersionName(versionText):
+        return versionText.split("(")[0].strip()
+
+    @staticmethod
+    def getVersionProductionEndYear(versionText):
+        regexMatch = re.findall(r"-[0-9]{4,7}\)", versionText)
+        if regexMatch:
+            return int(regexMatch[0][1:-1])
+        else:
+            return None
+
+
+
+
+
+
+
+
+
+
+    @staticmethod
     def _internationalize(text, wordsDict):
         for word in wordsDict.keys():
             if word == text:

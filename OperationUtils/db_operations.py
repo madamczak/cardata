@@ -9,9 +9,53 @@ from collections import OrderedDict
 
 moduleLogger = Logger.setLogger("dbops")
 
+class DataBaseTable(object):
+    #TODO: Unit tests
+    def __init__(self, tableName, columnsDictionary):
+        self.name = tableName
+        self.columnsDictionary = columnsDictionary
+
+    def getName(self):
+        return self.name
+
+    def getColumnsDictionary(self):
+        return self.columnsDictionary
+
+    def getColumnsNames(self):
+        return self.columnsDictionary.keys()
+
+class DataBaseSchema(object):
+    def __init__(self):
+        self.brandTable = DataBaseTable("cars_brand", OrderedDict(
+            [('b_id', "INT"), ('brandname', "TEXT"), ('modelname', "TEXT"), ('version', "TEXT"), ('link', "TEXT")]))
+
+        self.linkTable = DataBaseTable("links", OrderedDict(
+            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')]))
+
+        self.oldLinkTable = DataBaseTable("oldlinks", OrderedDict(
+            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')]))
+
+        self.invalidLinksTable = DataBaseTable("invalidlinks",
+                                               OrderedDict([('l_id', "INT"), ('time', "TEXT"), ('link', "TEXT")]))
+
+        self.carsTable = DataBaseTable("cars_car", OrderedDict(
+            [('b_id', "INT"), ('l_id', "INT"), ('year', "INT"), ('mileage', "INT"), ('power', "INT"),
+             ('capacity', "INT"), ('fuel', "TEXT"), ('color', "TEXT"), ('usedornew', "TEXT"),
+             ('doors', "TEXT"), ('gearbox', "TEXT"), ('location', "TEXT"), ('price', "INT"), ('time', "TEXT")]))
+
+        self.collectCycleTable = DataBaseTable("collectcycle", OrderedDict(
+            [('start_brands', "TEXT"), ('start_links', "TEXT"), ('start_cars', "TEXT"),
+             ('end_time', "TEXT"), ('new_brands', "INT"), ('new_links', "INT"),
+             ('new_cars', "INT")]))
+
+    def getEntireSchema(self):
+        return [self.brandTable, self.linkTable, self.oldLinkTable, self.invalidLinksTable, self.carsTable,
+                self.collectCycleTable]
+
 class DataBase(object):
     def __init__(self, databaseName):
         self.dbName = databaseName
+        self.dbSchema = DataBaseSchema()
         self.conn = sqlite3.connect(databaseName)
         self.c = self.conn.cursor()
         moduleLogger.info("Connection to db: '%s' is set up." % databaseName)
@@ -22,27 +66,8 @@ class DataBase(object):
         moduleLogger.info("Connection to db is closed.")
 
     def constructDBTables(self):
-        brandsDict = OrderedDict(
-            [('b_id', "INT"), ('brandname', "TEXT"), ('modelname', "TEXT"), ('version', "TEXT"), ('link', "TEXT")])
-        linksDict = OrderedDict(
-            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')])
-        oldLinksDict = OrderedDict(
-            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')])
-        InvalidLinksDict = OrderedDict([('l_id', "INT"), ('time', "TEXT"), ('link', "TEXT")])
-        carDataDict = OrderedDict(
-            [('b_id', "INT"), ('l_id', "INT"), ('year', "INT"), ('mileage', "INT"), ('power', "INT"),
-             ('capacity', "INT"), ('fuel', "TEXT"), ('color', "TEXT"), ('usedornew', "TEXT"),
-             ('doors', "TEXT"), ('gearbox', "TEXT"),('location', "TEXT") ,('price', "INT"), ('time', "TEXT")])
-        CycleDict = OrderedDict([('start_brands', "TEXT"), ('start_links', "TEXT"), ('start_cars', "TEXT"),
-                                 ('end_time', "TEXT"), ('new_brands', "INT"), ('new_links', "INT"),
-                                 ('new_cars', "INT")])
-
-        self.createTable('cars_brand', brandsDict)
-        self.createTable('links', linksDict)
-        self.createTable('oldlinks', oldLinksDict)
-        self.createTable('cars_car', carDataDict)
-        self.createTable('invalidlinks', InvalidLinksDict)
-        self.createTable('collectcycle', CycleDict)
+        for databaseTable in self.dbSchema.getEntireSchema():
+            self.createTable(databaseTable.getName(), databaseTable.getColumnsDictionary())
 
     def createTable(self, name, columnDict):
         methodName = inspect.stack()[0][3]
@@ -65,48 +90,52 @@ class DataBase(object):
         self.conn.commit()
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
+    #todo: unit tests
+    def insertOtoMotoBrandLink(self, otomotolink, b_id):
+        cmd = "UPDATE %s SET otomotolink = %s where b_id = %d" % (self.dbSchema.brandTable.getName(), otomotolink, b_id)
+
     def insertBrandToDatabase(self, brandId, brandName, link):
         moduleLogger.debug("Inserting brand: %s." % brandName)
         s = """%d, "%s", NULL, NULL, "%s" """ % (brandId, brandName, link)
-        self._insertStringData("cars_brand", s)
+        self._insertStringData(self.dbSchema.brandTable.getName(), s)
 
     def insertModelToDatabase(self, brandId, brandName, modelName, link):
         moduleLogger.debug("Inserting model: %s - %s." % (brandName, modelName))
         s = """%d, "%s", "%s", NULL, "%s" """ % (brandId, brandName, modelName, link)
-        self._insertStringData("cars_brand", s)
+        self._insertStringData(self.dbSchema.brandTable.getName(), s)
 
     def insertVersionToDatabase(self, brandId, brandName, modelName, versionName, link):
         s = """%d, "%s", "%s", "%s", "%s" """ % (brandId, brandName, modelName, versionName, link)
         moduleLogger.debug("Inserting version: %s - %s - %s." % (brandName, modelName, versionName))
-        self._insertStringData("cars_brand", s)
+        self._insertStringData(self.dbSchema.brandTable.getName(), s)
 
     def insertLinkToDatabase(self, linkId, brandId, link):
         moduleLogger.debug("Inserting link: %s." % link)
         s = """ %d, %d, "%s", "%s", "%r" """ % (linkId, brandId, str(datetime.datetime.now()), link, False)
-        self._insertStringData("links", s)
+        self._insertStringData(self.dbSchema.linkTable.getName(), s)
 
     def insertInvalidLinkToDatabase(self, linkId, link):
         moduleLogger.debug("Inserting invalid link: %s." % link)
         s = """ "%d", "%s", "%s" """ % (linkId, str(datetime.datetime.now()), link)
-        self._insertStringData("invalidlinks", s)
+        self._insertStringData(self.dbSchema.invalidLinksTable.getName(), s)
 
     def insertAllegroCarToDatabase(self, b_id, l_id, carDict):
         verificator = CarVerificationUtils()
         s = verificator.constructAllegroCarInsert(b_id, l_id, carDict)
-        self._insertStringData("cars_car", s)
+        self._insertStringData(self.dbSchema.carsTable.getName(), s)
 
     def insertCollectCycleToDatabase(self, brandsStartTime, linksStartTime, carsStartTime,
                                      endTime, newBrands, newLinks, newCars):
         dbmsg = """ "%s", "%s", "%s", "%s", %d, %d, %d""" % \
                 (str(brandsStartTime), str(linksStartTime), str(carsStartTime),
                  str(endTime), newBrands, newLinks, newCars)
-        self._insertStringData("collectcycle", dbmsg)
+        self._insertStringData(self.dbSchema.collectCycleTable.getName(), dbmsg)
 
     def getAmountOfBrands(self):
-        return self.getMaxFromColumnInTable("b_id", "cars_brand")
+        return self.getMaxFromColumnInTable("b_id", self.dbSchema.brandTable.getName())
 
     def getAmountOfLinks(self):
-        return self.getMaxFromColumnInTable("l_id", "links")
+        return self.getMaxFromColumnInTable("l_id", self.dbSchema.linkTable.getName())
 
     def readAllDataGenerator(self, tableName, amount=2000, where=""):
         conn = sqlite3.connect(self.dbName)
@@ -133,10 +162,23 @@ class DataBase(object):
                 yield row
 
     def readAllUnparsedLinks(self):
-        return self.readAllDataGenerator('links', where='WHERE parsed = "False"')
+        return self.readAllDataGenerator(self.dbSchema.linkTable.getName(), where='WHERE parsed = "False"')
 
     def readAllBrands(self):
-        return self.readAllDataGenerator('cars_brand')
+        return self.readAllDataGenerator(self.dbSchema.brandTable.getName())
+
+    def getAllBrandNames(self):
+        return set([brand[1] for brand in self.readAllDataGenerator(self.dbSchema.brandTable.getName())])
+
+    def getAllModelNamesOfBrand(self, brandName):
+        return set([model[2] for model in self.readAllDataGenerator(self.dbSchema.brandTable.getName(), where='where brandname="%s"' % brandName)])
+
+    def getAllVersionNamesOfModel(self, brandName):
+        return set([version[3] for version in self.readAllDataGenerator(self.dbSchema.brandTable.getName(), where='where modelname="%s"' % brandName)])
+
+    # todo: unit tests
+    def addColumnToATable(self, columnName, dataType, tableName):
+        self._executeSqlCommand("alter table %s Add %s %s" % (tableName, columnName, dataType))
 
     def _executeSqlCommand(self, command):
         methodName = inspect.stack()[0][3]
@@ -146,11 +188,11 @@ class DataBase(object):
         self.conn.commit()
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
-
+    # ==?==
     def _getAllIds(self, colName, name):
         methodName = inspect.stack()[0][3]
 
-        command = """SELECT B_Id FROM cars_brand WHERE %s = "%s" """ % (colName, name)
+        command = """SELECT B_Id FROM %s WHERE %s = "%s" """ % (self.dbSchema.brandTable.getName(), colName, name)
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
@@ -166,7 +208,7 @@ class DataBase(object):
     def _getCarsById(self,  brandId):
         methodName = inspect.stack()[0][3]
 
-        command = """SELECT * FROM cars_car WHERE B_Id = "%s" """ % brandId
+        command = """SELECT * FROM %s WHERE B_Id = "%s" """ % (self.dbSchema.carsTable.getName(), brandId)
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
@@ -179,16 +221,20 @@ class DataBase(object):
             moduleLogger.debug('%s - There are no cars with B_Id %s'  % (methodName,brandId))
             return []
 
+    # ==?==
     def getAllBrandIdsOfBrand(self, brandName):
         return self._getAllIds('brandName', brandName)
 
+    # ==?==
     def getAllBrandIdsOfModel(self, modelName):
         return self._getAllIds('modelName', modelName)
 
+    # ==?==
     def getVersionID(self, modelName, version):
         methodName = inspect.stack()[0][3]
 
-        command = """SELECT B_Id FROM cars_brand WHERE "modelName" = "%s" and "version" = "%s" """ % (modelName, version)
+        command = """SELECT B_Id FROM %s WHERE "modelName" = "%s" and "version" = "%s" """ % (
+                                                                self.dbSchema.brandTable.getName(), modelName, version)
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
@@ -203,10 +249,11 @@ class DataBase(object):
 
 
     #TODO: Use GENERATOR for method below
+    # ==?==
     def getAllCars(self):
         methodName = inspect.stack()[0][3]
 
-        command = """SELECT * FROM cars_car """
+        command = """SELECT * FROM %s """ % self.dbSchema.carsTable.getName()
         moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
@@ -271,29 +318,37 @@ class DataBase(object):
 
         return valueIsPresentInDb
 
+    # ==?==
     def linkIsPresentInDatabase(self, link):
-        return self._valueIsPresentInColumnOfATable(link, "link", "links")
+        return self._valueIsPresentInColumnOfATable(link, "link", self.dbSchema.linkTable.getName())
 
+    # ==?==
     def thereAreParsedLinksInTheTable(self):
-        return self._valueIsPresentInColumnOfATable("True", "parsed", "links")
+        return self._valueIsPresentInColumnOfATable("True", "parsed", self.dbSchema.linkTable.getName())
 
+    # ==?==
     def thereAreOnlyParsedLinksInTheTable(self):
-        return not self._valueIsPresentInColumnOfATable("False", "parsed", "links")
+        return not self._valueIsPresentInColumnOfATable("False", "parsed", self.dbSchema.linkTable.getName())
 
+    # ==?==
     def thereAreOnlyUnparsedLinksInTheTable(self):
-        return not self._valueIsPresentInColumnOfATable("True", "parsed", "links")
+        return not self._valueIsPresentInColumnOfATable("True", "parsed", self.dbSchema.linkTable.getName())
 
+    # ==?==
     def brandLinkIsPresentInDatabase(self, link):
-        return self._valueIsPresentInColumnOfATable(link, 'link', "cars_brand")
+        return self._valueIsPresentInColumnOfATable(link, 'link', self.dbSchema.brandTable.getName())
 
+    # ==?==
     def brandNameIsPresentInDatabase(self, brandName):
-        return self._valueIsPresentInColumnOfATable(brandName, 'brandname', "cars_brand")
+        return self._valueIsPresentInColumnOfATable(brandName, 'brandname', self.dbSchema.brandTable.getName())
 
+    # ==?==
     def modelNameIsPresentInDatabase(self, modelName):
-        return self._valueIsPresentInColumnOfATable(modelName, 'modelname', "cars_brand")
+        return self._valueIsPresentInColumnOfATable(modelName, 'modelname', self.dbSchema.brandTable.getName())
 
+    # ==?==
     def versionIsPresentInDatabase(self, version):
-        return self._valueIsPresentInColumnOfATable(version, 'version', "cars_brand")
+        return self._valueIsPresentInColumnOfATable(version, 'version', self.dbSchema.brandTable.getName())
 
     def countRecordsInTable(self, tableName):
         #mostly for testing purposes
@@ -327,10 +382,21 @@ class DataBase(object):
 
         return columnExists
 
+    def columnOfATableExists(self, column, table):
+        command = """SELECT %s FROM %s """ % (column, table)
+        try:
+            self.c.execute(command)
+            return True
+        except:
+            return False
+
+    #TODO: test if old links are removed
     def clearLinksOlderThanMonth(self):
-        self._executeSqlCommand("INSERT INTO oldlinks SELECT * FROM links WHERE time < '%s'" %
-                                str(datetime.datetime.now() - datetime.timedelta(30)))
+        self._executeSqlCommand("INSERT INTO %s SELECT * FROM %s WHERE time < '%s'" %
+                                (self.dbSchema.oldLinkTable.getName(), self.dbSchema.linkTable.getName(),
+                                 str(datetime.datetime.now() - datetime.timedelta(30))))
 
     def updateParsedParameterForLinkWithId(self, linkId):
-        self._executeSqlCommand("""UPDATE links SET parsed = "True" WHERE l_id = "%d" """ % linkId)
+        self._executeSqlCommand(
+            """UPDATE %s SET parsed = "True" WHERE l_id = "%d" """ % (self.dbSchema.linkTable.getName(), linkId))
 
