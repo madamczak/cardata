@@ -138,11 +138,14 @@ class AllegroWebsiteParsingTest(unittest.TestCase):
 
         keys = ["rok produkcji:", "przebieg:", "moc:", "pojemnosc silnika:", "cena"] #most important
 
+        sitesWithmissedKeys = 0
         for link in lastWeeke60Links[:10]:
             carDict = AllegroURLOperations.parseAllegroSite(link)
 
             for key in keys:
-                self.assertTrue(key in carDict.keys(), msg="Missing key: %s" % key)
+                if not key in carDict.keys():
+                    sitesWithmissedKeys += 1
+                    break
 
             self.assertGreaterEqual(carDict.get("cena"), 0)
 
@@ -152,23 +155,7 @@ class AllegroWebsiteParsingTest(unittest.TestCase):
             self.assertGreaterEqual(int(DataCleaning.stripDecimalValue(carDict.get("przebieg:"))), 0)
             self.assertLessEqual(int(DataCleaning.stripDecimalValue(carDict.get("przebieg:"))), 10000000)
 
-
-class DataBaseSchemaTest(unittest.TestCase):
-    def setUp(self):
-        self.db = "database_creation_test.db"
-        _deleteDatabaseIfExists(self.db)
-        self.database = DataBase(self.db)
-
-    def testWorkingDatabaseHasCorrectSchema(self):
-        dbSchema = DataBaseSchema()
-        workingDatabase = DataBase("crontest3.db")
-        #check tables
-        for table in dbSchema.getEntireSchema():
-            self.assertTrue(workingDatabase.tableExists(table.getName()))
-            #check columns
-            for columnName in table.getColumnsNames():
-                self.assertTrue(workingDatabase.columnOfATableExists(columnName, table.getName()),
-                                "Column %s is not present in table: %s" % (columnName, table.getName()))
+        self.assertTrue(sitesWithmissedKeys < 5)
 
 
 class DatabaseCreationTest(unittest.TestCase):
@@ -179,41 +166,55 @@ class DatabaseCreationTest(unittest.TestCase):
     def testCreateTables(self):
         self.database.constructDBTables()
 
-        brands_columns = ["b_id", "brandname", "modelname", "version", "link"]
-        links_columns = ["l_id", "b_id", "time", "link", "parsed"]
+        brand_table_name = "cars_brand"
+        brands_columns = ["b_id", "brandname", "modelname", "version", "allegro_link", "otomoto_link"]
+
+        links_table_name = "links"
+        old_links_table_name = "old_links"
+        links_columns = ["l_id", "b_id", "time", "link", "parsed", "site_id"]
+
+        cars_table_name = "cars_car"
         cars_columns = ["b_id", "l_id", "year", "mileage", "power", "capacity", "power", "fuel", "color", "usedornew",
-                        "gearbox", "doors", "location", "price", "time"]
+                        "gearbox", "doors", "location", "price", "time", "site_id"]
+
+        invalid_links_table_name = "invalid_links"
         invalid_links_columns = ["l_id", "time", "link"]
-        collect_cycle_columns = ["start_brands", "start_links", "start_cars", "end_time", "new_brands", "new_links",
-                                 "new_cars"]
 
-        self.assertTrue(self.database.tableExists('cars_brand'))
+        allegro_collect_cycle_table_name = 'allegro_collect_cycle'
+        allegro_collect_cycle_columns = ["start_brands", "start_links", "start_cars",
+                                         "end_time", "new_brands", "new_links", "new_cars"]
+
+        site_id_table_name = 'site_identifiers'
+        site_id_columns = ["name", "identifier"]
+
+        self.assertTrue(self.database.tableExists(brand_table_name))
         for brands_column in brands_columns:
-            self.assertTrue(self.database.columnOfATableExists(brands_column, "cars_brand"))
+            self.assertTrue(self.database.columnOfATableExists(brands_column, brand_table_name))
 
-        self.assertTrue(self.database.tableExists('links'))
-
+        self.assertTrue(self.database.tableExists(links_table_name))
         for links_column in links_columns:
-            self.assertTrue(self.database.columnOfATableExists(links_column, "links"))
+            self.assertTrue(self.database.columnOfATableExists(links_column, links_table_name))
 
-        self.assertTrue(self.database.tableExists('oldlinks'))
+        self.assertTrue(self.database.tableExists(old_links_table_name))
         for old_links_column in links_columns:
-            self.assertTrue(self.database.columnOfATableExists(old_links_column, "oldlinks"))
+            self.assertTrue(self.database.columnOfATableExists(old_links_column, old_links_table_name))
 
-        self.assertTrue(self.database.tableExists('cars_car'))
-
+        self.assertTrue(self.database.tableExists(cars_table_name))
         for cars_column in cars_columns:
-            self.assertTrue(self.database.columnOfATableExists(cars_column, "cars_car"))
+            self.assertTrue(self.database.columnOfATableExists(cars_column, cars_table_name))
 
-        self.assertTrue(self.database.tableExists('invalidlinks'))
+        self.assertTrue(self.database.tableExists(invalid_links_table_name))
         for invalid_links_column in invalid_links_columns:
-            self.assertTrue(self.database.columnOfATableExists(invalid_links_column, "invalidlinks"))
+            self.assertTrue(self.database.columnOfATableExists(invalid_links_column, invalid_links_table_name))
 
-        self.assertTrue(self.database.tableExists('collectcycle'))
+        self.assertTrue(self.database.tableExists(allegro_collect_cycle_table_name))
+        for allegro_collect_cycle_column in allegro_collect_cycle_columns:
+            self.assertTrue(self.database.columnOfATableExists(allegro_collect_cycle_column,
+                                                               allegro_collect_cycle_table_name))
 
-        for collect_cycle_column in collect_cycle_columns:
-            self.assertTrue(self.database.columnOfATableExists(collect_cycle_column, "collectcycle"))
-
+        self.assertTrue(self.database.tableExists(site_id_table_name))
+        for site_id_column in site_id_columns:
+            self.assertTrue(self.database.columnOfATableExists(site_id_column, site_id_table_name))
         #TODO: new tables/columns
 
 
@@ -231,11 +232,11 @@ class DatabaseInsertionTest(unittest.TestCase):
         self.database.constructDBTables()
 
     def testInsertions(self):
-        self.database.insertBrandToDatabase(1, "BMW", "testlink1.com")
+        self.database.insertAllegroBrandToDatabase(1, "BMW", "testlink1.com")
         self.database.insertModelToDatabase(2, "BMW", "5", "testlink2.com")
         self.database.insertVersionToDatabase(3, "BMW", "5", "e60", "testlink3.com")
 
-        self.database.insertLinkToDatabase(1, 1, "testlink.com")
+        self.database.insertLinkToDatabase(1, 1, 999, "testlink.com")
         self.database.insertInvalidLinkToDatabase(2, "testlink.com")
 
         cardict = {
@@ -253,8 +254,11 @@ class DatabaseInsertionTest(unittest.TestCase):
             "cena": 29000,
         }
         self.database.insertAllegroCarToDatabase(1, 1, cardict)
-        self.database.insertCollectCycleToDatabase(datetime.datetime.now(), datetime.datetime.now(),
-                                                   datetime.datetime.now(), datetime.datetime.now(), 1, 1, 1)
+        self.database.insertAllegroCollectCycleToDatabase(datetime.datetime.now(), datetime.datetime.now(),
+                                                          datetime.datetime.now(), datetime.datetime.now(), 1, 1, 1)
+
+        self.database.insertSiteIdentifierToDatabase("allegro", 1)
+        self.assertEqual(self.database.countRecordsInTable("site_identifiers"), 1)
 
         self.assertEqual(self.database.countRecordsInTable("cars_brand"), 3)
         self.assertEqual(self.database.getAmountOfBrands(), 3)
@@ -267,17 +271,17 @@ class DatabaseInsertionTest(unittest.TestCase):
         unparsedLinks = list(self.database.readAllUnparsedLinks())
         self.assertEqual(len(unparsedLinks), 1)
 
-        self.assertEqual(self.database.countRecordsInTable("invalidlinks"), 1)
+        self.assertEqual(self.database.countRecordsInTable("invalid_links"), 1)
         self.assertEqual(self.database.countRecordsInTable("cars_car"), 1)
-        self.assertEqual(self.database.countRecordsInTable("collectcycle"), 1)
+        self.assertEqual(self.database.countRecordsInTable("allegro_collect_cycle"), 1)
 
         self.assertTrue(self.database.brandNameIsPresentInDatabase("BMW"))
         self.assertTrue(self.database.modelNameIsPresentInDatabase("5"))
         self.assertTrue(self.database.versionIsPresentInDatabase("e60"))
 
-        self.assertTrue(self.database.brandLinkIsPresentInDatabase("testlink1.com"))
-        self.assertTrue(self.database.brandLinkIsPresentInDatabase("testlink2.com"))
-        self.assertTrue(self.database.brandLinkIsPresentInDatabase("testlink3.com"))
+        self.assertTrue(self.database.allegroBrandLinkIsPresentInDatabase("testlink1.com"))
+        self.assertTrue(self.database.allegroBrandLinkIsPresentInDatabase("testlink2.com"))
+        self.assertTrue(self.database.allegroBrandLinkIsPresentInDatabase("testlink3.com"))
 
         self.assertTrue(self.database.thereAreOnlyUnparsedLinksInTheTable())
         self.assertFalse(self.database.thereAreParsedLinksInTheTable())
@@ -313,7 +317,7 @@ class AllegroSeparateCollectorsTest(unittest.TestCase):
         self.assertTrue(brandsCollector.db.modelNameIsPresentInDatabase("Accord"))
         self.assertTrue(brandsCollector.db.modelNameIsPresentInDatabase("Civic"))
         self.assertTrue(brandsCollector.db.modelNameIsPresentInDatabase("75"))
-        self.assertTrue(brandsCollector.db.versionIsPresentInDatabase("V (1993-1998)"))
+        self.assertTrue(brandsCollector.db.versionIsPresentInDatabase("VII (2002-2008)"))
         self.assertLess((datetime.datetime.now() - brandsStartTime).total_seconds(), 500)
         self.assertGreater(numberOfBrands, 20)
         self.assertGreater(brandsCollector.db.countRecordsInTable("cars_brand"), 20)
@@ -321,7 +325,7 @@ class AllegroSeparateCollectorsTest(unittest.TestCase):
         linksCollector = AllegroLinksCollector(self.database)
         numberOfLinks, linksStartTime = linksCollector.Collect()
         self.assertFalse(linksCollector.db.thereAreParsedLinksInTheTable())
-        self.assertGreater(numberOfLinks, 10)
+        self.assertGreaterEqual(numberOfLinks, 1)
         self.assertEqual(linksCollector.db.countRecordsInTable("links"), numberOfLinks)
         self.assertLess((datetime.datetime.now() - linksStartTime).total_seconds(), 500)
 
@@ -353,16 +357,16 @@ class AllegroCombinedCollectorsTest(unittest.TestCase):
         self.assertTrue(collector.db.modelNameIsPresentInDatabase("Accord"))
         self.assertTrue(collector.db.modelNameIsPresentInDatabase("Civic"))
         self.assertTrue(collector.db.modelNameIsPresentInDatabase("75"))
-        self.assertTrue(collector.db.versionIsPresentInDatabase("V (1993-1998)"))
+        self.assertTrue(collector.db.versionIsPresentInDatabase("VII (2002-2008)"))
 
-        self.assertGreater(collector.db.countRecordsInTable("cars_brand"), 20)
-        self.assertGreater(collector.db.countRecordsInTable("links"), 10)
-        self.assertGreaterEqual(collector.db.countRecordsInTable("invalidlinks"), 0)
-        self.assertGreater(collector.db.countRecordsInTable("cars_car"), 10)
+        self.assertGreaterEqual(collector.db.countRecordsInTable("cars_brand"), 20)
+        self.assertGreaterEqual(collector.db.countRecordsInTable("links"), 1)
+        self.assertGreaterEqual(collector.db.countRecordsInTable("invalid_links"), 0)
+        self.assertGreaterEqual(collector.db.countRecordsInTable("cars_car"), 1)
 
         self.assertTrue(collector.db.thereAreOnlyParsedLinksInTheTable())
 
-        self.assertEqual(collector.db.countRecordsInTable("collectcycle"), 1)
+        self.assertEqual(collector.db.countRecordsInTable("allegro_collect_cycle"), 1)
 
 
 class AllegroCollectedDataTest(unittest.TestCase):
@@ -406,7 +410,7 @@ class AllegroMoreThanOneCycleTest(unittest.TestCase):
     def testTripleCycle(self):
         collector = CarDataCollector(self.dbname)
         collector.Collect(brandsLimit=20, howManyCycles=3)
-        self.assertEqual(collector.db.countRecordsInTable("collectcycle"), 3)
+        self.assertEqual(collector.db.countRecordsInTable("allegro_collect_cycle"), 3)
         self.assertEqual(collector.db.countRecordsInTable("cars_brand"), collector.db.getAmountOfBrands())
         self.assertEqual(collector.db.countRecordsInTable("links"), collector.db.getAmountOfLinks())
 

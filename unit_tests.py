@@ -28,6 +28,9 @@ class AllegroUrlParsing(unittest.TestCase):
         parsedDict = AllegroURLOperations.parseAllegroSite(None)
         self.assertEqual({}, parsedDict)
 
+
+
+
 class DataCleaningStripDecimalValue(unittest.TestCase):
     def test_strips_power(self):
         toStrip = "1 598 cm3"
@@ -102,7 +105,6 @@ class DataCleaningNormalize(unittest.TestCase):
         self.assertEqual(DataCleaning.normalizeNumberOfDoors("4/5"), "4/5")
 
         self.assertEqual(DataCleaning.normalizeNumberOfDoors("30"), "unknown")
-
 
 class DataCleaningInternationalize(unittest.TestCase):
 #FUEL
@@ -309,8 +311,6 @@ class DataCleaningCarList(unittest.TestCase):
         lst = DataCleaning.cleanUnknowns(self.listOfCars)
         self.assertEqual(len(lst), 1)
 
-
-
 class DataBaseOpsCreation(unittest.TestCase):
     def setUp(self):
         self.newDb = DataBase("UnitTests/test2.db")
@@ -411,6 +411,91 @@ class DataBaseOpsUsage(unittest.TestCase):
 
     def test_db_get_max_value(self):
         self.assertEquals(testDB.getMaxFromColumnInTable("l_id", "links"), 246)
+
+    def test_get_all_brand_names(self):
+        self.assertTrue("Honda" in testDB.getAllBrandNames())
+
+    def test_get_all_model_names(self):
+        models = testDB.getAllModelNamesOfBrand("Honda")
+        self.assertTrue("Civic" in models)
+        self.assertTrue("Accord" in models)
+
+    def test_get_all_versions(self):
+        versions = testDB.getAllVersionNamesOfModel("Civic")
+        self.assertTrue("IV (1987-1991)" in versions)
+        self.assertTrue("III (1983-1987)" in versions)
+        self.assertTrue("VII (2001-2006)" in versions)
+
+
+
+class DataCleaningVersionYears(unittest.TestCase):
+    def test_version_production_begin_year_two_values(self):
+        versionText = "E60 (2003-2010)"
+        self.assertEquals(DataCleaning.getVersionProductionBeginYear(versionText), 2003)
+
+    def test_version_production_begin_year_one_value(self):
+        versionText = "F30 (2012-)"
+        self.assertEquals(DataCleaning.getVersionProductionBeginYear(versionText), 2012)
+
+    def test_version_production_begin_year_invalid_value(self):
+        versionText = "E60"
+        self.assertEquals(DataCleaning.getVersionProductionBeginYear(versionText), None)
+
+    def test_version_production_end_year_two_values(self):
+        versionText = "E60 (2003-2010)"
+        self.assertEquals(DataCleaning.getVersionProductionEndYear(versionText), 2010)
+
+    def test_version_production_end_year_one_values(self):
+        versionText = "F30 (2012-)"
+        self.assertEquals(DataCleaning.getVersionProductionEndYear(versionText), None)
+
+    def test_version_production_begin_year_invalid_value(self):
+        versionText = "F30"
+        self.assertEquals(DataCleaning.getVersionProductionBeginYear(versionText), None)
+
+class DataCleaningVersionText(unittest.TestCase):
+    def test_version_name_Text2Years(self):
+        versionText = "E60 (2003-2010)"
+        self.assertEquals(DataCleaning.getVersionName(versionText), "E60")
+
+    def test_version_name_Text1Year(self):
+        versionText = "F30 (2012-)"
+        self.assertEquals(DataCleaning.getVersionName(versionText), "F30")
+
+    def test_version_name_1YearWithoutSpace(self):
+        versionText = "F30(2012-)"
+        self.assertEquals(DataCleaning.getVersionName(versionText), "F30")
+
+    def test_version_name_1YearTooManySpaces(self):
+        versionText = "F30   (2012-)"
+        self.assertEquals(DataCleaning.getVersionName(versionText), "F30")
+
+    def test_version_name_1YearTooManySpacesAtBegin(self):
+        versionText = "    F30   (2012-)"
+        self.assertEquals(DataCleaning.getVersionName(versionText), "F30")
+
+    def test_version_name_OneSign(self):
+        versionText = "V (2017-)"
+        self.assertEquals(DataCleaning.getVersionName(versionText), "V")
+
+    def test_version_name_TwoWords(self):
+        versionText = "Seria E9 (1987-1992)"
+        self.assertEquals(DataCleaning.getVersionName(versionText), "Seria E9")
+
+    def test_version_name_ThreeWords(self):
+        versionText = "GR I Y60 (1987-1997)"
+        self.assertEquals(DataCleaning.getVersionName(versionText), "GR I Y60")
+
+    def test_version_name_Slashes(self):
+        versionText = "P10/W10 (1990-1998)"
+        self.assertEquals(DataCleaning.getVersionName(versionText), "P10/W10")
+
+    def test_version_name_Numbers(self):
+        versionText = "996 (1997-2004)"
+        self.assertEquals(DataCleaning.getVersionName(versionText), "996")
+
+
+
 
 
 if __name__ == "__main__":

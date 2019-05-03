@@ -1,3 +1,4 @@
+from OperationUtils.db_operations import DataBase
 from OperationUtils.logger import Logger
 
 moduleLogger = Logger.setLogger("Common URL Operations")
@@ -5,7 +6,6 @@ from bs4 import BeautifulSoup
 import requests
 import time
 import inspect
-
 
 
 def is_ascii(s):

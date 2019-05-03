@@ -27,7 +27,7 @@ class AllegroLinksCollector(LinksCollector):
 
         for link in links:
             if not self.db.linkIsPresentInDatabase(str(link)):
-                self.db.insertLinkToDatabase(counter, b_id, link)
+                self.db.insertLinkToDatabase(counter, b_id, 1, link) #TODO: switch to getting allegro id from database
                 counter += 1
                 numberOfNewLinks += 1
 

@@ -12,14 +12,14 @@ TOPLINK = "https://allegro.pl/kategoria/samochody-osobowe-4029"
 
 class AllegroBrandsCollector(BrandsCollector):
     def _addNewBrandCategory(self, item, count):
-        if not self.db.brandLinkIsPresentInDatabase(item[1]) and not self.db.brandNameIsPresentInDatabase(item[0]):
-            self.db.insertBrandToDatabase(count, item[0], item[1])
+        if not self.db.allegroBrandLinkIsPresentInDatabase(item[1]) and not self.db.brandNameIsPresentInDatabase(item[0]):
+            self.db.insertAllegroBrandToDatabase(count, item[0], item[1])
             return 1
         else:
             return 0
 
     def _addNewModelCategory(self, item, model, count):
-        if not self.db.brandLinkIsPresentInDatabase(model[1]) and not self.db.modelNameIsPresentInDatabase(model[0]):
+        if not self.db.allegroBrandLinkIsPresentInDatabase(model[1]) and not self.db.modelNameIsPresentInDatabase(model[0]):
             self.db.insertModelToDatabase(count, item[0], model[0], model[1])
             return 1
         else:
@@ -30,7 +30,7 @@ class AllegroBrandsCollector(BrandsCollector):
         pattern1 = re.compile(".*\(\d+-")
         pattern2 = re.compile(".*T\d")
 
-        if not self.db.brandLinkIsPresentInDatabase(ver[1]) \
+        if not self.db.allegroBrandLinkIsPresentInDatabase(ver[1]) \
                 and (pattern1.match(str(versionName)) or pattern2.match(str(versionName))):
             self.db.insertVersionToDatabase(count, item[0], model[0], ver[0], ver[1])
             return 1

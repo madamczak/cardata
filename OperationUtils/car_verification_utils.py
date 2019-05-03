@@ -46,7 +46,8 @@ class CarVerificationUtils(object):
 
         s += '"%s",' % carDict.get('miejsce', "")
         s += '"%d",' % int(carDict.get('cena', 0))
-        s += '"%s"' % str(datetime.datetime.now())
+        s += '"%s",' % str(datetime.datetime.now())
+        s += '%d' % 1 #TODO: switch to getting allegro id from database
 
         moduleLogger.debug("%s - %s " % (methodName, s))
 

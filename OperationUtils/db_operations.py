@@ -27,36 +27,42 @@ class DataBaseTable(object):
 class DataBaseSchema(object):
     def __init__(self):
         self.brandTable = DataBaseTable("cars_brand", OrderedDict(
-            [('b_id', "INT"), ('brandname', "TEXT"), ('modelname', "TEXT"), ('version', "TEXT"), ('link', "TEXT")]))
+            [('b_id', "INT"), ('brandname', "TEXT"), ('modelname', "TEXT"), ('version', "TEXT"),
+             ('allegro_link', "TEXT"), ('otomoto_link', "TEXT")]))
 
         self.linkTable = DataBaseTable("links", OrderedDict(
-            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')]))
+            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL'), ("site_id", "INT")]))
 
-        self.oldLinkTable = DataBaseTable("oldlinks", OrderedDict(
-            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL')]))
+        self.oldLinkTable = DataBaseTable("old_links", OrderedDict(
+            [('l_id', "INT"), ('b_id', "INT"), ('time', "TEXT"), ('link', "TEXT"), ('parsed', 'BOOL'), ("site_id", "INT")]))
 
-        self.invalidLinksTable = DataBaseTable("invalidlinks",
+        self.invalidLinksTable = DataBaseTable("invalid_links",
                                                OrderedDict([('l_id', "INT"), ('time', "TEXT"), ('link', "TEXT")]))
 
         self.carsTable = DataBaseTable("cars_car", OrderedDict(
             [('b_id', "INT"), ('l_id', "INT"), ('year', "INT"), ('mileage', "INT"), ('power', "INT"),
              ('capacity', "INT"), ('fuel', "TEXT"), ('color', "TEXT"), ('usedornew', "TEXT"),
-             ('doors', "TEXT"), ('gearbox', "TEXT"), ('location', "TEXT"), ('price', "INT"), ('time', "TEXT")]))
+             ('doors', "TEXT"), ('gearbox', "TEXT"), ('location', "TEXT"), ('price', "INT"),
+             ('time', "TEXT"), ("site_id", "INT")]))
 
-        self.collectCycleTable = DataBaseTable("collectcycle", OrderedDict(
+        self.allegroCollectCycle = DataBaseTable("allegro_collect_cycle", OrderedDict(
             [('start_brands', "TEXT"), ('start_links', "TEXT"), ('start_cars', "TEXT"),
              ('end_time', "TEXT"), ('new_brands', "INT"), ('new_links', "INT"),
              ('new_cars', "INT")]))
 
+        self.siteIdentifierTable = DataBaseTable("site_identifiers",
+                                                 OrderedDict([("name", "TEXT"), ("identifier", "INT")]))
+
     def getEntireSchema(self):
         return [self.brandTable, self.linkTable, self.oldLinkTable, self.invalidLinksTable, self.carsTable,
-                self.collectCycleTable]
+                self.allegroCollectCycle, self.siteIdentifierTable]
 
 class DataBase(object):
     def __init__(self, databaseName):
         self.dbName = databaseName
         self.dbSchema = DataBaseSchema()
         self.conn = sqlite3.connect(databaseName)
+        #TODO: self.c? really?
         self.c = self.conn.cursor()
         moduleLogger.info("Connection to db: '%s' is set up." % databaseName)
 
@@ -94,24 +100,24 @@ class DataBase(object):
     def insertOtoMotoBrandLink(self, otomotolink, b_id):
         cmd = "UPDATE %s SET otomotolink = %s where b_id = %d" % (self.dbSchema.brandTable.getName(), otomotolink, b_id)
 
-    def insertBrandToDatabase(self, brandId, brandName, link):
+    def insertAllegroBrandToDatabase(self, brandId, brandName, allegroLink, otomotoLink =""):
         moduleLogger.debug("Inserting brand: %s." % brandName)
-        s = """%d, "%s", NULL, NULL, "%s" """ % (brandId, brandName, link)
+        s = """%d, "%s", NULL, NULL, "%s", "%s" """ % (brandId, brandName, allegroLink, otomotoLink)
         self._insertStringData(self.dbSchema.brandTable.getName(), s)
 
-    def insertModelToDatabase(self, brandId, brandName, modelName, link):
+    def insertModelToDatabase(self, brandId, brandName, modelName, allegroLink, otomotoLink =""):
         moduleLogger.debug("Inserting model: %s - %s." % (brandName, modelName))
-        s = """%d, "%s", "%s", NULL, "%s" """ % (brandId, brandName, modelName, link)
+        s = """%d, "%s", "%s", NULL, "%s", "%s" """ % (brandId, brandName, modelName, allegroLink, otomotoLink)
         self._insertStringData(self.dbSchema.brandTable.getName(), s)
 
-    def insertVersionToDatabase(self, brandId, brandName, modelName, versionName, link):
-        s = """%d, "%s", "%s", "%s", "%s" """ % (brandId, brandName, modelName, versionName, link)
+    def insertVersionToDatabase(self, brandId, brandName, modelName, versionName, allegroLink, otomotoLink =""):
+        s = """%d, "%s", "%s", "%s", "%s", "%s" """ % (brandId, brandName, modelName, versionName, allegroLink, otomotoLink)
         moduleLogger.debug("Inserting version: %s - %s - %s." % (brandName, modelName, versionName))
         self._insertStringData(self.dbSchema.brandTable.getName(), s)
 
-    def insertLinkToDatabase(self, linkId, brandId, link):
+    def insertLinkToDatabase(self, linkId, brandId, siteId, link):
         moduleLogger.debug("Inserting link: %s." % link)
-        s = """ %d, %d, "%s", "%s", "%r" """ % (linkId, brandId, str(datetime.datetime.now()), link, False)
+        s = """ %d, %d, "%s", "%s", "%r", %d """ % (linkId, brandId, str(datetime.datetime.now()), link, False, siteId)
         self._insertStringData(self.dbSchema.linkTable.getName(), s)
 
     def insertInvalidLinkToDatabase(self, linkId, link):
@@ -124,12 +130,16 @@ class DataBase(object):
         s = verificator.constructAllegroCarInsert(b_id, l_id, carDict)
         self._insertStringData(self.dbSchema.carsTable.getName(), s)
 
-    def insertCollectCycleToDatabase(self, brandsStartTime, linksStartTime, carsStartTime,
-                                     endTime, newBrands, newLinks, newCars):
+    def insertAllegroCollectCycleToDatabase(self, brandsStartTime, linksStartTime, carsStartTime,
+                                            endTime, newBrands, newLinks, newCars):
         dbmsg = """ "%s", "%s", "%s", "%s", %d, %d, %d""" % \
                 (str(brandsStartTime), str(linksStartTime), str(carsStartTime),
                  str(endTime), newBrands, newLinks, newCars)
-        self._insertStringData(self.dbSchema.collectCycleTable.getName(), dbmsg)
+        self._insertStringData(self.dbSchema.allegroCollectCycle.getName(), dbmsg)
+
+    def insertSiteIdentifierToDatabase(self, name, identifier):
+        dbmsg = """ '%s', %d """ % (name, identifier)
+        self._insertStringData(self.dbSchema.siteIdentifierTable.getName(), dbmsg)
 
     def getAmountOfBrands(self):
         return self.getMaxFromColumnInTable("b_id", self.dbSchema.brandTable.getName())
@@ -320,7 +330,7 @@ class DataBase(object):
 
     # ==?==
     def linkIsPresentInDatabase(self, link):
-        return self._valueIsPresentInColumnOfATable(link, "link", self.dbSchema.linkTable.getName())
+        return self._valueIsPresentInColumnOfATable(link, "allegro_link", self.dbSchema.linkTable.getName())
 
     # ==?==
     def thereAreParsedLinksInTheTable(self):
@@ -335,8 +345,8 @@ class DataBase(object):
         return not self._valueIsPresentInColumnOfATable("True", "parsed", self.dbSchema.linkTable.getName())
 
     # ==?==
-    def brandLinkIsPresentInDatabase(self, link):
-        return self._valueIsPresentInColumnOfATable(link, 'link', self.dbSchema.brandTable.getName())
+    def allegroBrandLinkIsPresentInDatabase(self, link):
+        return self._valueIsPresentInColumnOfATable(link, 'allegro_link', self.dbSchema.brandTable.getName())
 
     # ==?==
     def brandNameIsPresentInDatabase(self, brandName):

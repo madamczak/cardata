@@ -84,6 +84,7 @@ class AllegroURLOperations(object):
         else:
             return brandsDictionary
 
+    #todo: change startTimeParameter to number of days
     @staticmethod
     def getLinksFromCategorySite(url, startTimeParameter="&startingTime=7"):
         methodName = inspect.stack()[0][3]

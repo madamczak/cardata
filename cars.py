@@ -18,8 +18,8 @@ class CarDataCollector(object):
         newLinks, linksStartTime = AllegroLinksCollector(self.db).Collect()
         newCars, carsStartTime = AllegroCarsCollector(self.db).Collect()
         endTime = str(datetime.datetime.now())
-        self.db.insertCollectCycleToDatabase(brandsStartTime, linksStartTime, carsStartTime,
-                                             endTime, newBrands, newLinks, newCars)
+        self.db.insertAllegroCollectCycleToDatabase(brandsStartTime, linksStartTime, carsStartTime,
+                                                    endTime, newBrands, newLinks, newCars)
         return brandsStartTime, newBrands, newLinks, newCars, endTime
 
     def _collectReversed(self, brandsLimit=2000):
@@ -27,8 +27,8 @@ class CarDataCollector(object):
         newBrands, brandsStartTime = AllegroBrandsCollector(self.db).Collect(limit=brandsLimit)
         newLinks, linksStartTime = AllegroLinksCollector(self.db).Collect()
         endTime = str(datetime.datetime.now())
-        self.db.insertCollectCycleToDatabase(brandsStartTime, linksStartTime, carsStartTime,
-                                             endTime, newBrands, newLinks, newCars)
+        self.db.insertAllegroCollectCycleToDatabase(brandsStartTime, linksStartTime, carsStartTime,
+                                                    endTime, newBrands, newLinks, newCars)
         return carsStartTime, newBrands, newLinks, newCars, endTime
 
     def _logEndCycleMessage(self, startTime, newBrands, newLinks, newCars, endTime, cycleNumber):
@@ -51,8 +51,13 @@ class CarDataCollector(object):
         moduleLogger.info('%s - Started: %s' % (methodName, datetime.datetime.now().strftime("%d-%m-%Y %H:%M")))
         self.db.constructDBTables()
 
+        #provide site identifiers - currently only allegro
+        self.db.insertSiteIdentifierToDatabase("allegro", 1)
+        # self.db.insertSiteIdentifierToDatabase("otomoto", 2)
+
         whileLoopCounter = 0
         while True:
+            #TODO: this is obsolete as it is run by cron
             if nightly:
                 self._waitForNextLoop()
 
@@ -67,7 +72,9 @@ class CarDataCollector(object):
                 startTime, newBrands, newLinks, newCars, endTime = \
                     self._collectReversed(brandsLimit)
 
+            #TODO: old_links growing too much - check it
             self.db.clearLinksOlderThanMonth()
+
 
             self._logEndCycleMessage(startTime, newBrands, newLinks, newCars, endTime, whileLoopCounter)
             whileLoopCounter += 1
