@@ -1,33 +1,32 @@
 from SiteModules.common_cars_collector import CarsCollector
 from multiprocessing import cpu_count
-from SiteModules.Allegro.AllegroUrlOperations import AllegroURLOperations
+from SiteModules.OtoMoto.OtoMotoUrlOperations import OtoMotoURLOperations
 import datetime
 import concurrent.futures
 
 from OperationUtils.logger import Logger
-moduleLogger = Logger.setLogger("AllegroCarsCollector")
+moduleLogger = Logger.setLogger("OtoMotoCarsCollector")
 
+class OtoMotoCarsCollector(CarsCollector):
+    def _parseOtoMotoLink(self, otoMotoLinkTuple):
+        return allegroLinkTuple, OtoMotoURLOperations.parseOtomotoSite(otoMotoLinkTuple[3])
 
-class AllegroCarsCollector(CarsCollector):
-    def _parseAllegroLink(self, allegroLinkTuple):
-        return allegroLinkTuple, AllegroURLOperations.parseAllegroSite(allegroLinkTuple[3])
-
-    def sortDictionaries(self, allegroLinkTuple, d):
+    def sortDictionaries(self, otoMotoLinkTuple, d):
         if self.verificator.verifyDictionary(d):
-            self.validLinksDict[allegroLinkTuple] = d
+            self.validLinksDict[otoMotoLinkTuple] = d
         else:
-            self.invalidLinksList.append(allegroLinkTuple)
+            self.invalidLinksList.append(otoMotoLinkTuple)
 
     def _insertLinks(self):
         self._insertValidLinks()
         self._insertInvalidLinks()
 
-    def _insertValidLinks(self):
+    def _insertInvalidLinks(self):
         for invalidLinkTuple in self.invalidLinksList:
             self.db.updateParsedParameterForLinkWithId(invalidLinkTuple[0])
             self.db.insertInvalidLinkToDatabase(invalidLinkTuple[0], invalidLinkTuple[3])
 
-    def _insertInvalidLinks(self):
+    def _insertValidLinks(self):
         for validLinkTuple, carDictionary in self.validLinksDict.items():
             self.db.updateParsedParameterForLinkWithId(validLinkTuple[0])
             self.db.insertAllegroCarToDatabase(validLinkTuple[1], validLinkTuple[0], carDictionary)
@@ -36,13 +35,13 @@ class AllegroCarsCollector(CarsCollector):
         startTime = datetime.datetime.now()
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_count()) as crawler_link_threads:
-            future_tasks = {crawler_link_threads.submit(self._parseAllegroLink, link):
-                                link for link in self.db.readAllUnparsedLinksOfSiteCategory(1)}
+            future_tasks = {crawler_link_threads.submit(self._parseOtoMotoLink, link):
+                                link for link in self.db.readAllUnparsedLinksOfSiteCategory(2)}
             for future in concurrent.futures.as_completed(future_tasks):
                 self.carsResultDict[future.result()[0]] = future.result()[1]
 
-        for allegroLinkTuple, carDictionary in self.carsResultDict.items():
-            self.sortDictionaries(allegroLinkTuple, carDictionary)
+        for otoMotoLinkTuple, carDictionary in self.carsResultDict.items():
+            self.sortDictionaries(otoMotoLinkTuple, carDictionary)
 
         self._insertLinks()
         return len(self.validLinksDict.keys()), startTime

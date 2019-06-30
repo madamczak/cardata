@@ -22,6 +22,10 @@ class CarVerificationUtils(object):
         else:
             return "%s" % DataCleaning.normalize(textValue)
 
+    def constructOtoMotoCarInsert(self, b_id, l_id, carDict):
+        #TODO: construct this
+        return {}
+
     def constructAllegroCarInsert(self, b_id, l_id, carDict):
         #todo: this would look so much better if Car object would be created, is there time for that?
         methodName = inspect.stack()[0][3]

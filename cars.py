@@ -52,8 +52,9 @@ class CarDataCollector(object):
         self.db.constructDBTables()
 
         #provide site identifiers - currently only allegro
+        #TODO - check if they are present in the db
         self.db.insertSiteIdentifierToDatabase("allegro", 1)
-        # self.db.insertSiteIdentifierToDatabase("otomoto", 2)
+        self.db.insertSiteIdentifierToDatabase("otomoto", 2)
 
         whileLoopCounter = 0
         while True:

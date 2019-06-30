@@ -98,7 +98,9 @@ class DataBase(object):
 
     #todo: unit tests
     def insertOtoMotoBrandLink(self, otomotolink, b_id):
-        cmd = "UPDATE %s SET otomotolink = %s where b_id = %d" % (self.dbSchema.brandTable.getName(), otomotolink, b_id)
+        cmd = 'UPDATE %s SET otomoto_link = "%s" where b_id = %d' % (self.dbSchema.brandTable.getName(), otomotolink, b_id)
+        self.c.execute(cmd)
+        self.conn.commit()
 
     def insertAllegroBrandToDatabase(self, brandId, brandName, allegroLink, otomotoLink =""):
         moduleLogger.debug("Inserting brand: %s." % brandName)
@@ -128,6 +130,11 @@ class DataBase(object):
     def insertAllegroCarToDatabase(self, b_id, l_id, carDict):
         verificator = CarVerificationUtils()
         s = verificator.constructAllegroCarInsert(b_id, l_id, carDict)
+        self._insertStringData(self.dbSchema.carsTable.getName(), s)
+
+    def insertOtoMotoCarToDatabase(self, b_id, l_id, carDict):
+        verificator = CarVerificationUtils()
+        s = verificator.constructOtoMotoCarInsert(b_id, l_id, carDict)
         self._insertStringData(self.dbSchema.carsTable.getName(), s)
 
     def insertAllegroCollectCycleToDatabase(self, brandsStartTime, linksStartTime, carsStartTime,
@@ -173,6 +180,9 @@ class DataBase(object):
 
     def readAllUnparsedLinks(self):
         return self.readAllDataGenerator(self.dbSchema.linkTable.getName(), where='WHERE parsed = "False"')
+
+    def readAllUnparsedLinksOfSiteCategory(self, site_id):
+        return self.readAllDataGenerator(self.dbSchema.linkTable.getName(), where='WHERE parsed = "False" and site_id = %d' % site_id)
 
     def readAllBrands(self):
         return self.readAllDataGenerator(self.dbSchema.brandTable.getName())

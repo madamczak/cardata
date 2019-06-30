@@ -8,7 +8,7 @@ from SiteModules.Allegro.AllegroLinksCollector import AllegroLinksCollector
 class KeepOnCollectingWithExistingDatabase(unittest.TestCase):
     def setUp(self):
         self.dbSchema = DataBaseSchema()
-        self.dbName = "crontest3 - Kopia.db"
+        self.dbName = "crontest3TBT.db"
         self.workingDatabase = DataBase(self.dbName)
 
     def run(self, result=None):
