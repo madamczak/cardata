@@ -52,9 +52,3 @@ class OtomotoLinksCollector(LinksCollector):
             numberOfNewLinks += self._insertLinksFromCategoryToDatabase(b_id, links)
 
         return numberOfNewLinks, startTime
-
-database = DataBase('..\..\crontest3TBT.db')
-
-collector = OtomotoLinksCollector(database)
-
-collector.Collect()

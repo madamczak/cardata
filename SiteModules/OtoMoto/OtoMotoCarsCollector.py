@@ -29,7 +29,7 @@ class OtoMotoCarsCollector(CarsCollector):
     def _insertValidLinks(self):
         for validLinkTuple, carDictionary in self.validLinksDict.items():
             self.db.updateParsedParameterForLinkWithId(validLinkTuple[0])
-            self.db.insertAllegroCarToDatabase(validLinkTuple[1], validLinkTuple[0], carDictionary)
+            self.db.insertOtoMotoCarToDatabase(validLinkTuple[1], validLinkTuple[0], carDictionary)
 
     def Collect(self):
         startTime = datetime.datetime.now()
