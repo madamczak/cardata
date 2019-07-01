@@ -23,8 +23,33 @@ class CarVerificationUtils(object):
             return "%s" % DataCleaning.normalize(textValue)
 
     def constructOtoMotoCarInsert(self, b_id, l_id, carDict):
-        #TODO: construct this
-        return {}
+        methodName = inspect.stack()[0][3]
+        s = """"""
+        s += '%d,' % int(b_id)
+        s += '%d,' % int(l_id)
+        s += self._checkDigit(DataCleaning.stripDecimalValue(carDict.get('rok produkcji', 0)))
+        s += self._checkDigit(DataCleaning.stripDecimalValue(carDict.get('przebieg', 0)))
+        s += self._checkDigit(DataCleaning.stripDecimalValue(carDict.get('moc', 0)))
+        s += self._checkDigit(DataCleaning.stripDecimalValue(carDict.get('pojemnosc skokowa', 0)))
+        s += '"%s",' % DataCleaning.internationalizeFuel(str(carDict.get('rodzaj paliwa', "")))
+        s += '"%s",' % DataCleaning.internationalizeColor(self._checkString(carDict.get('kolor', u"")))
+        s += '"%s",' % DataCleaning.internationalizeState(carDict.get('stan', ""))
+        s += '"%s",' % DataCleaning.normalizeNumberOfDoors(str(carDict.get('liczba drzw:', "")))
+
+        gearboxValue = carDict.get('skrzynia biegow', u"")  #
+        if type(gearboxValue) == str:
+            s += '"%s",' % DataCleaning.internationalizeGearbox(gearboxValue)
+        else:
+            s += '"%s",' % DataCleaning.internationalizeGearbox(DataCleaning.normalize(gearboxValue))
+
+        s += '"%s",' % carDict.get('location', "")
+        s += '"%d",' % int(carDict.get('price', 0))
+        s += '"%s",' % str(datetime.datetime.now())
+        s += '%d' % 2  # TODO: switch to getting allegro id from database
+
+        moduleLogger.debug("%s - %s " % (methodName, s))
+
+        return s
 
     def constructAllegroCarInsert(self, b_id, l_id, carDict):
         #todo: this would look so much better if Car object would be created, is there time for that?

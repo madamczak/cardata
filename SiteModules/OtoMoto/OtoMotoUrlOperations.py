@@ -192,7 +192,7 @@ class OtoMotoURLOperations(object):
         soup = openLinkAndReturnSoup(url)
         elements = soup.find_all("li", {'class': 'offer-params__item'})
         for element in elements:
-            dataDictionary[element.span.text.strip()] = element.div.text.strip()
+            dataDictionary[DataCleaning.normalize(element.span.text.strip().lower())] = element.div.text.strip().lower()
 
         location = OtoMotoURLOperations.getOtoMotoLocation(soup)
         price, currency = OtoMotoURLOperations.getOtoMotoPrice(soup)
