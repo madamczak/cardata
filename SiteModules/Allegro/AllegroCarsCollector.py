@@ -13,7 +13,7 @@ class AllegroCarsCollector(CarsCollector):
         return allegroLinkTuple, AllegroURLOperations.parseAllegroSite(allegroLinkTuple[3])
 
     def sortDictionaries(self, allegroLinkTuple, d):
-        if self.verificator.verifyDictionary(d):
+        if self.verificator.verifyAllegroDictionary(d):
             self.validLinksDict[allegroLinkTuple] = d
         else:
             self.invalidLinksList.append(allegroLinkTuple)

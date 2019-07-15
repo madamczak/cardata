@@ -332,7 +332,7 @@ class DataBaseOpsUsage(unittest.TestCase):
     def test_db_read_all_data_by_generator(self):
         allLinks = []
 
-        for lnk in testDB.readAllDataGenerator("Links", 5):
+        for lnk in testDB.readAllData("Links", 5):
             allLinks.append(lnk)
 
         self.assertEquals(len(allLinks), 15)
@@ -340,7 +340,7 @@ class DataBaseOpsUsage(unittest.TestCase):
     def test_db_read_all_data_by_generator_with_interruption(self):
         allLinks = []
 
-        for lnk in testDB.readAllDataGenerator("Links", 5):
+        for lnk in testDB.readAllData("Links", 5):
             allLinks.append(lnk)
             testDB.tableExists("Links")
 

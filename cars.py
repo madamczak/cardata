@@ -7,13 +7,29 @@ from SiteModules.Allegro.AllegroBrandsCollector import AllegroBrandsCollector
 from SiteModules.Allegro.AllegroLinksCollector import AllegroLinksCollector
 from SiteModules.Allegro.AllegroCarsCollector import AllegroCarsCollector
 from OperationUtils.logger import Logger
+from SiteModules.OtoMoto.OtoMotoBrandsCollector import OtoMotoBrandsCollector
+from SiteModules.OtoMoto.OtoMotoCarsCollector import OtoMotoCarsCollector
+from SiteModules.OtoMoto.OtoMotoLinksCollector import OtomotoLinksCollector
+
 moduleLogger = Logger.setLogger("cars.py")
 
 class CarDataCollector(object):
     def __init__(self, databaseName):
         self.db = DataBase(databaseName)
 
-    def _collectNormal(self, brandsLimit=2000):
+    def _collectNormalOtoMoto(self, brandsLimit=2000):
+        newBrands, brandsStartTime = OtoMotoBrandsCollector(self.db).Collect(limit=brandsLimit)
+        newLinks, linksStartTime = OtomotoLinksCollector(self.db).Collect()
+
+        print "End of links"
+
+        newCars, carsStartTime = OtoMotoCarsCollector(self.db).Collect()
+        endTime = str(datetime.datetime.now())
+        self.db.insertOtoMotoCollectCycleToDatabase(brandsStartTime, linksStartTime, carsStartTime,
+                                                    endTime, newBrands, newLinks, newCars)
+        return brandsStartTime, newBrands, newLinks, newCars, endTime
+
+    def _collectNormalAllegro(self, brandsLimit=2000):
         newBrands, brandsStartTime = AllegroBrandsCollector(self.db).Collect(limit=brandsLimit)
         newLinks, linksStartTime = AllegroLinksCollector(self.db).Collect()
         newCars, carsStartTime = AllegroCarsCollector(self.db).Collect()
@@ -22,7 +38,7 @@ class CarDataCollector(object):
                                                     endTime, newBrands, newLinks, newCars)
         return brandsStartTime, newBrands, newLinks, newCars, endTime
 
-    def _collectReversed(self, brandsLimit=2000):
+    def _collectReversedAllegro(self, brandsLimit=2000):
         newCars, carsStartTime = AllegroCarsCollector(self.db).Collect()
         newBrands, brandsStartTime = AllegroBrandsCollector(self.db).Collect(limit=brandsLimit)
         newLinks, linksStartTime = AllegroLinksCollector(self.db).Collect()
@@ -67,14 +83,14 @@ class CarDataCollector(object):
                 break
 
             if not reversed:
-                startTime, newBrands, newLinks, newCars, endTime = \
-                    self._collectNormal(brandsLimit)
+                startTime, newBrands, newLinks, newCars, endTime = self._collectNormalOtoMoto(brandsLimit)
+                    # self._collectNormalAllegro(brandsLimit)
             else:
                 startTime, newBrands, newLinks, newCars, endTime = \
-                    self._collectReversed(brandsLimit)
+                    self._collectReversedAllegro(brandsLimit)
 
             #TODO: old_links growing too much - check it
-            self.db.clearLinksOlderThanMonth()
+            #self.db.clearLinksOlderThanMonth()
 
 
             self._logEndCycleMessage(startTime, newBrands, newLinks, newCars, endTime, whileLoopCounter)

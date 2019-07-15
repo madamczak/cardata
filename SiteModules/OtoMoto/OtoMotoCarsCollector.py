@@ -9,10 +9,10 @@ moduleLogger = Logger.setLogger("OtoMotoCarsCollector")
 
 class OtoMotoCarsCollector(CarsCollector):
     def _parseOtoMotoLink(self, otoMotoLinkTuple):
-        return allegroLinkTuple, OtoMotoURLOperations.parseOtomotoSite(otoMotoLinkTuple[3])
+        return otoMotoLinkTuple, OtoMotoURLOperations.parseOtomotoSite(otoMotoLinkTuple[3])
 
     def sortDictionaries(self, otoMotoLinkTuple, d):
-        if self.verificator.verifyDictionary(d):
+        if self.verificator.verifyOtoMotoDictionary(d):
             self.validLinksDict[otoMotoLinkTuple] = d
         else:
             self.invalidLinksList.append(otoMotoLinkTuple)
@@ -33,15 +33,17 @@ class OtoMotoCarsCollector(CarsCollector):
 
     def Collect(self):
         startTime = datetime.datetime.now()
-
+        count = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_count()) as crawler_link_threads:
             future_tasks = {crawler_link_threads.submit(self._parseOtoMotoLink, link):
                                 link for link in self.db.readAllUnparsedLinksOfSiteCategory(2)}
             for future in concurrent.futures.as_completed(future_tasks):
-                self.carsResultDict[future.result()[0]] = future.result()[1]
+                self.db.updateParsedParameterForLinkWithId(future.result()[0][0])
+                if self.verificator.verifyOtoMotoDictionary(future.result()[1]):
+                    moduleLogger.info("Inserting car with l_id %s" % future.result()[0][1])
+                    self.db.insertOtoMotoCarToDatabase(future.result()[0][1], future.result()[0][0], future.result()[1])
+                    count += 1
+                else:
+                    moduleLogger.info("Not inserting car with l_id %s - verified negitively" % future.result()[0][1])
 
-        for otoMotoLinkTuple, carDictionary in self.carsResultDict.items():
-            self.sortDictionaries(otoMotoLinkTuple, carDictionary)
-
-        self._insertLinks()
-        return len(self.validLinksDict.keys()), startTime
+        return count, startTime

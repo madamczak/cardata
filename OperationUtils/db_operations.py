@@ -50,12 +50,17 @@ class DataBaseSchema(object):
              ('end_time', "TEXT"), ('new_brands', "INT"), ('new_links', "INT"),
              ('new_cars', "INT")]))
 
+        self.otomotoCollectCycle = DataBaseTable("otomoto_collect_cycle", OrderedDict(
+            [('start_brands', "TEXT"), ('start_links', "TEXT"), ('start_cars', "TEXT"),
+             ('end_time', "TEXT"), ('new_brands', "INT"), ('new_links', "INT"),
+             ('new_cars', "INT")]))
+
         self.siteIdentifierTable = DataBaseTable("site_identifiers",
                                                  OrderedDict([("name", "TEXT"), ("identifier", "INT")]))
 
     def getEntireSchema(self):
         return [self.brandTable, self.linkTable, self.oldLinkTable, self.invalidLinksTable, self.carsTable,
-                self.allegroCollectCycle, self.siteIdentifierTable]
+                self.allegroCollectCycle, self.otomotoCollectCycle, self.siteIdentifierTable]
 
 class DataBase(object):
     def __init__(self, databaseName):
@@ -144,6 +149,13 @@ class DataBase(object):
                  str(endTime), newBrands, newLinks, newCars)
         self._insertStringData(self.dbSchema.allegroCollectCycle.getName(), dbmsg)
 
+    def insertOtoMotoCollectCycleToDatabase(self, brandsStartTime, linksStartTime, carsStartTime,
+                                            endTime, newBrands, newLinks, newCars):
+        dbmsg = """ "%s", "%s", "%s", "%s", %d, %d, %d""" % \
+                (str(brandsStartTime), str(linksStartTime), str(carsStartTime),
+                 str(endTime), newBrands, newLinks, newCars)
+        self._insertStringData(self.dbSchema.otomotoCollectCycle.getName(), dbmsg)
+
     def insertSiteIdentifierToDatabase(self, name, identifier):
         dbmsg = """ '%s', %d """ % (name, identifier)
         self._insertStringData(self.dbSchema.siteIdentifierTable.getName(), dbmsg)
@@ -154,7 +166,7 @@ class DataBase(object):
     def getAmountOfLinks(self):
         return self.getMaxFromColumnInTable("l_id", self.dbSchema.linkTable.getName())
 
-    def readAllDataGenerator(self, tableName, amount=2000, where=""):
+    def readAllData(self, tableName, amount=2000, where=""):
         conn = sqlite3.connect(self.dbName)
         cursor = self.conn.cursor()
 
@@ -165,36 +177,28 @@ class DataBase(object):
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
 
         counter = 0
-        while True:
-            rows = cursor.fetchmany(amount)
-            if not rows:
-                moduleLogger.debug(
-                    "%s - End of rows returned from command: %s. There was around %d records in %s table." %
-                                   (methodName, command, counter * amount, tableName))
-                conn.close()
-                break
-            moduleLogger.debug("%s - Fetching another %d rows." % (methodName, amount))
-            counter += 1
-            for row in rows:
-                yield row
+
+        rows = cursor.fetchmany(amount)
+        conn.close()
+        return rows
 
     def readAllUnparsedLinks(self):
-        return self.readAllDataGenerator(self.dbSchema.linkTable.getName(), where='WHERE parsed = "False"')
+        return self.readAllData(self.dbSchema.linkTable.getName(), where='WHERE parsed = "False"')
 
     def readAllUnparsedLinksOfSiteCategory(self, site_id):
-        return self.readAllDataGenerator(self.dbSchema.linkTable.getName(), where='WHERE parsed = "False" and site_id = %d' % site_id)
+        return self.readAllData(self.dbSchema.linkTable.getName(), amount=50000, where='WHERE parsed = "False" and site_id = %d' % site_id)
 
     def readAllBrands(self):
-        return self.readAllDataGenerator(self.dbSchema.brandTable.getName())
+        return self.readAllData(self.dbSchema.brandTable.getName(), amount=2000)
 
     def getAllBrandNames(self):
-        return set([brand[1] for brand in self.readAllDataGenerator(self.dbSchema.brandTable.getName())])
+        return set([brand[1] for brand in self.readAllData(self.dbSchema.brandTable.getName())])
 
     def getAllModelNamesOfBrand(self, brandName):
-        return set([model[2] for model in self.readAllDataGenerator(self.dbSchema.brandTable.getName(), where='where brandname="%s"' % brandName)])
+        return set([model[2] for model in self.readAllData(self.dbSchema.brandTable.getName(), where='where brandname="%s"' % brandName)])
 
     def getAllVersionNamesOfModel(self, brandName):
-        return set([version[3] for version in self.readAllDataGenerator(self.dbSchema.brandTable.getName(), where='where modelname="%s"' % brandName)])
+        return set([version[3] for version in self.readAllData(self.dbSchema.brandTable.getName(), where='where modelname="%s"' % brandName)])
 
     # todo: unit tests
     def addColumnToATable(self, columnName, dataType, tableName):
@@ -339,8 +343,11 @@ class DataBase(object):
         return valueIsPresentInDb
 
     # ==?==
-    def linkIsPresentInDatabase(self, link):
+    def allegroLinkIsPresentInDatabase(self, link):
         return self._valueIsPresentInColumnOfATable(link, "allegro_link", self.dbSchema.linkTable.getName())
+
+    def otoMotoLinkIsPresentInDatabase(self, link):
+        return self._valueIsPresentInColumnOfATable(link, "otomoto_link", self.dbSchema.linkTable.getName())
 
     # ==?==
     def thereAreParsedLinksInTheTable(self):

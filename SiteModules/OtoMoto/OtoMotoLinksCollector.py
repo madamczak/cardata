@@ -29,12 +29,12 @@ class OtomotoLinksCollector(LinksCollector):
         numberOfNewLinks = 0
 
         for link in links:
-            if not self.db.linkIsPresentInDatabase(str(link)):
+            if not self.db.otoMotoLinkIsPresentInDatabase(str(link)):
                 self.db.insertLinkToDatabase(counter, b_id, 2, link) #TODO: get site id from DB
                 counter += 1
                 numberOfNewLinks += 1
 
-        moduleLogger.info("%s - Number of new links: %d." % (methodName, len(links)))
+        moduleLogger.info("%s - Number of new links in category %d: %d." % (methodName, b_id, len(links)))
 
         return numberOfNewLinks
 
@@ -42,13 +42,12 @@ class OtomotoLinksCollector(LinksCollector):
         numberOfNewLinks = 0
         startTime = datetime.datetime.now()
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as crawler_link_threads:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=cpu_count()) as crawler_link_threads:
             future_tasks = [crawler_link_threads.submit(self._getNewLinksFromCategorySite, cat)
                             for cat in self.db.readAllBrands()]
             for future in concurrent.futures.as_completed(future_tasks):
-                self.result_dict[future.result()[0]] = future.result()[1]
 
-        for b_id, links in self.result_dict.items():
-            numberOfNewLinks += self._insertLinksFromCategoryToDatabase(b_id, links)
+                numberOfNewLinks += self._insertLinksFromCategoryToDatabase(future.result()[0], future.result()[1])
+                #self.result_dict[future.result()[0]] = future.result()[1]
 
         return numberOfNewLinks, startTime

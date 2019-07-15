@@ -43,7 +43,9 @@ class CarVerificationUtils(object):
             s += '"%s",' % DataCleaning.internationalizeGearbox(DataCleaning.normalize(gearboxValue))
 
         s += '"%s",' % carDict.get('location', "")
-        s += '"%d",' % int(carDict.get('price', 0))
+
+        s += '"%d",' % int(float(carDict.get('price', 0)))
+
         s += '"%s",' % str(datetime.datetime.now())
         s += '%d' % 2  # TODO: switch to getting allegro id from database
 
@@ -91,7 +93,7 @@ class CarVerificationUtils(object):
         moduleLogger.debug("Car does not have %s parsed.\n Rest of dictionary: %s\n" % (param, msg))
 
     # TODO refactor, testing
-    def verifyDictionary(self, carDict):
+    def verifyAllegroDictionary(self, carDict):
         # verify keys
         if carDict and len(carDict.keys()) >= 8:
             if carDict.get('cena') is not None and carDict.get('cena') == 0:
@@ -156,3 +158,70 @@ class CarVerificationUtils(object):
         else:
             moduleLogger.debug("Car dictionary has less than 15 keys. Number of keys: %d" % len(carDict))
             return False
+
+    # TODO refactor, testing
+    def verifyOtoMotoDictionary(self, carDict):
+        # verify keys
+        if carDict and len(carDict.keys()) >= 8:
+            if carDict.get('price') is not None and carDict.get('price') == 0:
+                self.logDebugDict(carDict, "Price")
+                return False
+
+            if ":" not in carDict.keys()[0]:
+                if carDict.get('rok produkcji') is not None and carDict.get('rok produkcji') == 0:
+                    self.logDebugDict(carDict, "Year of production")
+                    return False
+                if carDict.get('przebieg') is not None:
+                    if carDict.get('przebieg') == 0:
+                        self.logDebugDict(carDict, "Mileage")
+                        return False
+                else:
+                    return False
+                if carDict.get('moc') is not None:
+                    if carDict.get('moc') == 0:
+                        self.logDebugDict(carDict, "power")
+                        return False
+                else:
+                    return False
+                if carDict.get('pojemnosc skokowa') is not None:
+                    if carDict.get('pojemnosc skokowa') == 0:
+                        self.logDebugDict(carDict, "capacity")
+                        return False
+                else:
+                    return False
+            else:
+                if carDict.get('rok produkcji:') is not None:
+                    if carDict.get('rok produkcji:') == 0:
+                        self.logDebugDict(carDict, "Year of production")
+                        return False
+                else:
+                    return False
+                mileage = carDict.get('przebieg:')
+                if mileage is not None:
+                    if mileage == 0:
+                        self.logDebugDict(carDict, "Mileage")
+                        return False
+                else:
+                    return False
+
+                power = carDict.get('moc:')
+                if power is not None:
+                    if power == 0:
+                        self.logDebugDict(carDict, "power")
+                        return False
+                else:
+                    return False
+
+                capacity = carDict.get('pojemnosc silnika:')
+                if capacity is not None:
+                    if capacity == 0:
+                        self.logDebugDict(carDict, "capacity")
+                        return False
+                else:
+                    return False
+
+            return True
+
+        else:
+            moduleLogger.debug("Car dictionary has less than 15 keys. Number of keys: %d" % len(carDict))
+        return False

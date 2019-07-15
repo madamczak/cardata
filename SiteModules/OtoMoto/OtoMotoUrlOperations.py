@@ -7,7 +7,7 @@ import inspect
 
 TOPLINK = "https://www.otomoto.pl/osobowe/"
 moduleLogger = Logger.setLogger("OtoMoto URL Operations")
-database = DataBase('..\..\crontest3 - Kopia.db')
+# database = DataBase('..\..\crontest3 - Kopia.db')
 
 
 
@@ -159,44 +159,63 @@ class OtoMotoURLOperations(object):
 
     @staticmethod
     def getOtoMotoLocation(soup):
-        location = soup.find("span", {"class": "seller-box__seller-address__label"}).text.strip()
-        return location
+        location = soup.find("span", {"class": "seller-box__seller-address__label"})
+
+        if location is not None:
+            return location.text.strip()
+        else:
+            return "unknown"
 
     @staticmethod
     def getOtoMotoPrice(soup):
-        priceAndCurrency = soup.find("span", {"class": "offer-price__number"}).text.strip()
-        currency = priceAndCurrency[-3:]
-        price = DataCleaning.stripDecimalValue(priceAndCurrency)
-        return price, currency
+        priceAndCurrency = soup.find("span", {"class": "offer-price__number"})
+
+        if priceAndCurrency is not None:
+            priceAndCurrency = priceAndCurrency.text.strip()
+            currency = priceAndCurrency[-3:]
+            price = DataCleaning.stripDecimalValue(priceAndCurrency)
+            return price, currency
+        else:
+            return 0, "unknown"
 
 
     @staticmethod
     def getOtoMotoDateAdded(soup):
-        dateAdded = soup.find("span", {"class": "offer-meta__value"}).text.strip()
-        # convert to datetime string
-        return dateAdded
+        dateAdded = soup.find("span", {"class": "offer-meta__value"})
+        if dateAdded is not None:
+            return dateAdded.text.strip()
+        else:
+            return "unknown"
 
     #todo: test this properly for errors, probably should be private
     @staticmethod
     def getNumberOfPagesInBrandCategory(categoryLink):
         soup = openLinkAndReturnSoup(categoryLink)
-        pages = soup.find_all("span", {'class': 'page'})
-        if pages:
-            return int(pages[-1].text)
+        if soup:
+            pages = soup.find_all("span", {'class': 'page'})
+            if pages:
+                return int(pages[-1].text)
         return 0
 
     @staticmethod
     #todo: tests, normalize values, internationalize values
     def parseOtomotoSite(url):
         dataDictionary = {}
+        moduleLogger.info("Parsing link: %s" % url)
         soup = openLinkAndReturnSoup(url)
+        if soup is None:
+            return {}
         elements = soup.find_all("li", {'class': 'offer-params__item'})
         for element in elements:
+            # print element.span.text.strip().lower(), element.div.text.strip().lower()
             dataDictionary[DataCleaning.normalize(element.span.text.strip().lower())] = element.div.text.strip().lower()
 
         location = OtoMotoURLOperations.getOtoMotoLocation(soup)
+        # print location
         price, currency = OtoMotoURLOperations.getOtoMotoPrice(soup)
+        # print price, currency
         timeAdded = OtoMotoURLOperations.getOtoMotoDateAdded(soup)
+        # print timeAdded
         dataDictionary["price"] = price
         dataDictionary["currency"] = currency
         dataDictionary["location"] = location
@@ -211,5 +230,6 @@ class OtoMotoURLOperations(object):
             database.insertOtoMotoBrandLink(DataCleaning.normalize(link), brand_id)
 
 
-
-
+carDict = OtoMotoURLOperations.parseOtomotoSite("https://www.otomoto.pl/oferta/mercedes-benz-gle-350-d-4m-bezwypadkowy-pneumatyka-pakiet-amg-kam-360-keyless-go-ID6C0uaO.html#4b96ca4051")
+for key, val in carDict.items():
+    print key, val
