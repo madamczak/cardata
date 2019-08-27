@@ -344,10 +344,10 @@ class DataBase(object):
 
     # ==?==
     def allegroLinkIsPresentInDatabase(self, link):
-        return self._valueIsPresentInColumnOfATable(link, "allegro_link", self.dbSchema.linkTable.getName())
+        return self._valueIsPresentInColumnOfATable(link, "link", self.dbSchema.linkTable.getName())
 
     def otoMotoLinkIsPresentInDatabase(self, link):
-        return self._valueIsPresentInColumnOfATable(link, "otomoto_link", self.dbSchema.linkTable.getName())
+        return self._valueIsPresentInColumnOfATable(link, "link", self.dbSchema.linkTable.getName())
 
     # ==?==
     def thereAreParsedLinksInTheTable(self):
@@ -426,4 +426,3 @@ class DataBase(object):
     def updateParsedParameterForLinkWithId(self, linkId):
         self._executeSqlCommand(
             """UPDATE %s SET parsed = "True" WHERE l_id = "%d" """ % (self.dbSchema.linkTable.getName(), linkId))
-

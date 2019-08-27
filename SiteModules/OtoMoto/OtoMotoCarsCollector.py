@@ -38,12 +38,19 @@ class OtoMotoCarsCollector(CarsCollector):
             future_tasks = {crawler_link_threads.submit(self._parseOtoMotoLink, link):
                                 link for link in self.db.readAllUnparsedLinksOfSiteCategory(2)}
             for future in concurrent.futures.as_completed(future_tasks):
-                self.db.updateParsedParameterForLinkWithId(future.result()[0][0])
-                if self.verificator.verifyOtoMotoDictionary(future.result()[1]):
-                    moduleLogger.info("Inserting car with l_id %s" % future.result()[0][1])
-                    self.db.insertOtoMotoCarToDatabase(future.result()[0][1], future.result()[0][0], future.result()[1])
-                    count += 1
-                else:
-                    moduleLogger.info("Not inserting car with l_id %s - verified negitively" % future.result()[0][1])
+                self.carsResultDict[future.result()[0]] = future.result()[1]
 
-        return count, startTime
+        for otomotoLinkTuple, carDictionary in self.carsResultDict.items():
+            self.sortDictionaries(otomotoLinkTuple, carDictionary)
+
+
+                # self.db.updateParsedParameterForLinkWithId(future.result()[0][0])
+                # if self.verificator.verifyOtoMotoDictionary(future.result()[1]):
+                #     moduleLogger.info("Inserting car with l_id %s" % future.result()[0][1])
+                #     self.db.insertOtoMotoCarToDatabase(future.result()[0][1], future.result()[0][0], future.result()[1])
+                #     count += 1
+                # else:
+                #     moduleLogger.info("Not inserting car with l_id %s - verified negitively" % future.result()[0][0])
+        self._insertLinks()
+        return len(self.validLinksDict.keys()), startTime
+        # return count, startTime

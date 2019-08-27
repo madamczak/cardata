@@ -42,7 +42,7 @@ class CarVerificationUtils(object):
         else:
             s += '"%s",' % DataCleaning.internationalizeGearbox(DataCleaning.normalize(gearboxValue))
 
-        s += '"%s",' % carDict.get('location', "")
+        s += '"%s",' % carDict.get('location', "").replace('"', '')
 
         s += '"%d",' % int(float(carDict.get('price', 0)))
 

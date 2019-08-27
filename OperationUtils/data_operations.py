@@ -80,6 +80,23 @@ COLUMNIDDICTIONARY = {
             "time": 13
         }
 
+MONTHSDICTIONARY = {
+    "stycznia": 1,
+    "lutego": 2,
+    "marca": 3,
+    "kwietnia": 4,
+    "maja": 5,
+    "czerwca": 6,
+    "lipca": 7,
+    "sierpnia": 8,
+    "wrzesnia": 9,
+    "września": 9,
+    "pazdziernika": 10,
+    "października": 10,
+    "listopada": 11,
+    "grudnia": 12
+}
+
 class DataCleaning(object):
     @staticmethod
     def cleanAllData(listOfCars):
@@ -186,15 +203,6 @@ class DataCleaning(object):
         else:
             return None
 
-
-
-
-
-
-
-
-
-
     @staticmethod
     def _internationalize(text, wordsDict):
         for word in wordsDict.keys():
@@ -226,8 +234,34 @@ class DataCleaning(object):
             return "zolty"
         elif unicodeValue == u"złoty":
             return "zloty"
+        elif unicodeValue == u"zł":
+            return "zl"
         else:
             return unicodedata.normalize('NFKD', unicodeValue.strip()).encode('ascii', 'ignore').lower()
+
+    @staticmethod
+    def convertOtomotoDate(dateString):
+        methodName = inspect.stack()[0][3]
+        try:
+            hour, date = tuple(dateString.split(","))
+            day, month, year = tuple(date.strip().split(" "))
+            adDate = datetime.date(day=int(day), month=MONTHSDICTIONARY.get(month), year=int(year))
+            return adDate
+        except:
+            moduleLogger.info("%s - Problems parsing date: %s." % (methodName, dateString))
+            return datetime.date.today()
+
+
+    @staticmethod
+    def convertOLXDate(dateString):
+        methodName = inspect.stack()[0][3]
+        try:
+            day, month, year = tuple(dateString.strip().split(" "))
+            adDate = datetime.date(day=int(day), month=MONTHSDICTIONARY.get(month), year=int(year))
+            return adDate
+        except:
+            moduleLogger.info("%s - Problems parsing date: %s." % (methodName, dateString))
+            return datetime.date.today()
 
 #todo: move to another file, this will be a lot more important when data analysis will start
 class DataOperations(object):
