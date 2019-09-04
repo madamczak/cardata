@@ -33,8 +33,8 @@ class CarVerificationUtils(object):
         s += self._checkDigit(DataCleaning.stripDecimalValue(carDict.get('pojemnosc skokowa', 0)))
         s += '"%s",' % DataCleaning.internationalizeFuel(str(carDict.get('rodzaj paliwa', "")))
         s += '"%s",' % DataCleaning.internationalizeColor(self._checkString(carDict.get('kolor', u"")))
-        s += '"%s",' % DataCleaning.internationalizeState(carDict.get('stan', ""))
-        s += '"%s",' % DataCleaning.normalizeNumberOfDoors(str(carDict.get('liczba drzw:', "")))
+        s += '"%s",' % DataCleaning.internationalizeState(DataCleaning.normalize(carDict.get('stan', "")))
+        s += '"%s",' % DataCleaning.normalizeNumberOfDoors(str(carDict.get('liczba drzwi', "")))
 
         gearboxValue = carDict.get('skrzynia biegow', u"")  #
         if type(gearboxValue) == str:
@@ -49,7 +49,7 @@ class CarVerificationUtils(object):
         s += '"%s",' % str(datetime.datetime.now())
         s += '%d' % 2  # TODO: switch to getting allegro id from database
 
-        moduleLogger.debug("%s - %s " % (methodName, s))
+        moduleLogger.info("%s - %s " % (methodName, s))
 
         return s
 

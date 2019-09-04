@@ -96,7 +96,7 @@ class DataBase(object):
         methodName = inspect.stack()[0][3]
 
         command = "INSERT INTO %s VALUES(%s)" % (tableName, stringData)
-        moduleLogger.debug("%s - Command: %s will be executed." % (methodName, command))
+        moduleLogger.info("%s - Command: %s will be executed." % (methodName, command))
         self.c.execute(command)
         self.conn.commit()
         moduleLogger.debug("%s - Command: %s executed successfully." % (methodName, command))
@@ -197,8 +197,8 @@ class DataBase(object):
     def getAllModelNamesOfBrand(self, brandName):
         return set([model[2] for model in self.readAllData(self.dbSchema.brandTable.getName(), where='where brandname="%s"' % brandName)])
 
-    def getAllVersionNamesOfModel(self, brandName):
-        return set([version[3] for version in self.readAllData(self.dbSchema.brandTable.getName(), where='where modelname="%s"' % brandName)])
+    def getAllVersionNamesOfModel(self, modelName):
+        return set([version[3] for version in self.readAllData(self.dbSchema.brandTable.getName(), where='where modelname="%s"' % modelName)])
 
     # todo: unit tests
     def addColumnToATable(self, columnName, dataType, tableName):
